@@ -1,79 +1,91 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import { RequireAuth } from "@/components/auth/require-auth";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { ConsoleLayout } from "@/components/layout/console-layout";
 import { ScrollToTop } from "@/components/layout/scroll-to-top";
 import { SiteLayout } from "@/components/layout/site-layout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CartPage } from "@/pages/cart";
 import { HelpPage } from "@/pages/help";
 import { HomePage } from "@/pages/home";
 import { LoginPage } from "@/pages/login";
+import { NetworkPage } from "@/pages/network";
 import { NotFoundPage } from "@/pages/not-found";
-import { PricingPage } from "@/pages/pricing";
-import { ProductDetailPage } from "@/pages/product-detail";
-import { ProductsPage } from "@/pages/products";
+import { PlansPage } from "@/pages/plans";
 import { RegisterPage } from "@/pages/register";
+import { SetupPage } from "@/pages/setup";
 
-// Dashboard and checkout are behind auth — code-split them out of the
+// Checkout and console are behind auth — code-split them out of the
 // public bundle so the storefront stays fast for anonymous visitors.
 const CheckoutPage = lazy(() =>
   import("@/pages/checkout").then((m) => ({ default: m.CheckoutPage })),
 );
-const OrderSuccessPage = lazy(() =>
-  import("@/pages/order-success").then((m) => ({
-    default: m.OrderSuccessPage,
+const ActivatedPage = lazy(() =>
+  import("@/pages/activated").then((m) => ({ default: m.ActivatedPage })),
+);
+const ConsoleOverviewPage = lazy(() =>
+  import("@/pages/console/overview").then((m) => ({
+    default: m.ConsoleOverviewPage,
   })),
 );
-const DashboardOverviewPage = lazy(() =>
-  import("@/pages/dashboard/overview").then((m) => ({
-    default: m.DashboardOverviewPage,
+const ConsoleSubscriptionPage = lazy(() =>
+  import("@/pages/console/subscription").then((m) => ({
+    default: m.ConsoleSubscriptionPage,
   })),
 );
-const OrdersPage = lazy(() =>
-  import("@/pages/dashboard/orders").then((m) => ({ default: m.OrdersPage })),
-);
-const OrderDetailPage = lazy(() =>
-  import("@/pages/dashboard/order-detail").then((m) => ({
-    default: m.OrderDetailPage,
+const ConsoleDevicesPage = lazy(() =>
+  import("@/pages/console/devices").then((m) => ({
+    default: m.ConsoleDevicesPage,
   })),
 );
-const MyProductsPage = lazy(() =>
-  import("@/pages/dashboard/my-products").then((m) => ({
-    default: m.MyProductsPage,
+const ConsoleSetupPage = lazy(() =>
+  import("@/pages/console/setup").then((m) => ({
+    default: m.ConsoleSetupPage,
   })),
 );
-const MyProductDetailPage = lazy(() =>
-  import("@/pages/dashboard/my-product-detail").then((m) => ({
-    default: m.MyProductDetailPage,
+const ConsoleBillingPage = lazy(() =>
+  import("@/pages/console/billing").then((m) => ({
+    default: m.ConsoleBillingPage,
   })),
 );
-const SubscriptionsPage = lazy(() =>
-  import("@/pages/dashboard/subscriptions").then((m) => ({
-    default: m.SubscriptionsPage,
+const ConsoleSupportPage = lazy(() =>
+  import("@/pages/console/support").then((m) => ({
+    default: m.ConsoleSupportPage,
   })),
 );
-const SubscriptionManagePage = lazy(() =>
-  import("@/pages/dashboard/subscription-manage").then((m) => ({
-    default: m.SubscriptionManagePage,
-  })),
-);
-const SupportPage = lazy(() =>
-  import("@/pages/dashboard/support").then((m) => ({ default: m.SupportPage })),
-);
-const SettingsPage = lazy(() =>
-  import("@/pages/dashboard/settings").then((m) => ({
-    default: m.SettingsPage,
+const ConsoleSettingsPage = lazy(() =>
+  import("@/pages/console/settings").then((m) => ({
+    default: m.ConsoleSettingsPage,
   })),
 );
 
 function PageFallback() {
   return (
-    <div className="mx-auto w-full max-w-content space-y-4 px-5 py-12 sm:px-8">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-4 w-72" />
-      <Skeleton className="mt-6 h-48 rounded-xl" />
+    <div className="mx-auto w-full max-w-[960px] space-y-4 px-5 py-12 sm:px-8">
+      <Skeleton className="h-7 w-40" />
+      <Skeleton className="h-4 w-64" />
+      <Skeleton className="mt-6 h-40 w-full" />
     </div>
+  );
+}
+
+function lazyPage(element: React.ReactNode) {
+  return <Suspense fallback={<PageFallback />}>{element}</Suspense>;
+}
+
+/** Old dashboard URLs keep working, mapped onto the console. */
+function LegacyDashboardRedirect() {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={location.pathname.replace(/^\/dashboard/, "/console") || "/console"}
+      replace
+    />
   );
 }
 
@@ -82,112 +94,58 @@ export function App() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
+        {/* Legacy commerce routes → new IA */}
+        <Route path="/products" element={<Navigate to="/plans" replace />} />
+        <Route path="/products/*" element={<Navigate to="/plans" replace />} />
+        <Route path="/pricing" element={<Navigate to="/plans" replace />} />
+        <Route path="/cart" element={<Navigate to="/plans" replace />} />
+        <Route
+          path="/order/success/*"
+          element={<Navigate to="/console" replace />}
+        />
+        <Route path="/dashboard/*" element={<LegacyDashboardRedirect />} />
+
+        {/* Public site chrome */}
         <Route element={<SiteLayout />}>
-          {/* Public */}
           <Route index element={<HomePage />} />
-          <Route path="products" element={<ProductsPage />} />
-          <Route path="products/:slug" element={<ProductDetailPage />} />
-          <Route path="pricing" element={<PricingPage />} />
+          <Route path="network" element={<NetworkPage />} />
+          <Route path="plans" element={<PlansPage />} />
+          <Route path="setup" element={<SetupPage />} />
           <Route path="help" element={<HelpPage />} />
-          <Route path="cart" element={<CartPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
-          <Route
-            path="order/success/:orderId"
-            element={
-              <Suspense fallback={<PageFallback />}>
-                <OrderSuccessPage />
-              </Suspense>
-            }
-          />
 
-          {/* Authenticated */}
           <Route element={<RequireAuth />}>
             <Route
               path="checkout"
-              element={
-                <Suspense fallback={<PageFallback />}>
-                  <CheckoutPage />
-                </Suspense>
-              }
+              element={lazyPage(<CheckoutPage />)}
             />
-            <Route path="dashboard" element={<DashboardLayout />}>
-              <Route
-                index
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <DashboardOverviewPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="orders"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <OrdersPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="orders/:id"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <OrderDetailPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="products"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <MyProductsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="products/:id"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <MyProductDetailPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="subscriptions"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <SubscriptionsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="subscriptions/:id"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <SubscriptionManagePage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="support"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <SupportPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="settings"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <SettingsPage />
-                  </Suspense>
-                }
-              />
-            </Route>
+            <Route
+              path="access/activated"
+              element={lazyPage(<ActivatedPage />)}
+            />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />
+        </Route>
+
+        {/* Console — standalone shell, no marketing chrome */}
+        <Route element={<RequireAuth />}>
+          <Route path="/console" element={<ConsoleLayout />}>
+            <Route index element={lazyPage(<ConsoleOverviewPage />)} />
+            <Route
+              path="subscription"
+              element={lazyPage(<ConsoleSubscriptionPage />)}
+            />
+            <Route path="devices" element={lazyPage(<ConsoleDevicesPage />)} />
+            <Route path="setup" element={lazyPage(<ConsoleSetupPage />)} />
+            <Route path="billing" element={lazyPage(<ConsoleBillingPage />)} />
+            <Route path="support" element={lazyPage(<ConsoleSupportPage />)} />
+            <Route
+              path="settings"
+              element={lazyPage(<ConsoleSettingsPage />)}
+            />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

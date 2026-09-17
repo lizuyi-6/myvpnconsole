@@ -5,26 +5,25 @@ import { brand } from "@/config/brand";
 
 const FOOTER_GROUPS = [
   {
-    title: "Products",
+    title: "Service",
     links: [
-      { to: "/products?category=ai", label: "AI Subscriptions" },
-      { to: "/products?category=network", label: "Network" },
-      { to: "/products?category=bundle", label: "Bundles" },
+      { to: "/network", label: "Network" },
+      { to: "/plans", label: "Plans" },
+      { to: "/setup", label: "Setup" },
     ],
   },
   {
-    title: "Company",
+    title: "Support",
     links: [
-      { to: "/pricing", label: "Pricing" },
       { to: "/help", label: "Help Center" },
-      { to: "/dashboard/support", label: "Support" },
+      { to: "/console/support", label: "Contact support" },
     ],
   },
 ];
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border/70">
+    <footer className="border-t border-border/60">
       <Container className="grid gap-10 py-12 sm:grid-cols-[1.5fr_1fr_1fr]">
         <div>
           <Logo />
@@ -42,7 +41,7 @@ export function SiteFooter() {
                 <li key={link.label}>
                   <Link
                     to={link.to}
-                    className="text-[13px] text-muted transition-colors hover:text-foreground focus-ring rounded-sm"
+                    className="rounded-sm text-[13px] text-muted transition-colors hover:text-foreground focus-ring"
                   >
                     {link.label}
                   </Link>
@@ -52,10 +51,12 @@ export function SiteFooter() {
           </div>
         ))}
       </Container>
-      <div className="border-t border-border/70">
+      <div className="border-t border-border/60">
         <Container className="flex h-14 items-center justify-between text-xs text-subtle">
-          <span>© {new Date().getFullYear()} {brand.name}. All rights reserved.</span>
-          <span>Built for digital services.</span>
+          <span>
+            © {new Date().getFullYear()} {brand.name}. All rights reserved.
+          </span>
+          <span className="hidden sm:inline">Network access, simplified.</span>
         </Container>
       </div>
     </footer>

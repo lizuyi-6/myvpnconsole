@@ -1,7 +1,5 @@
-import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Container } from "@/components/layout/container";
-import { Reveal } from "@/components/motion/reveal";
 import {
   Accordion,
   AccordionContent,
@@ -13,46 +11,48 @@ import { brand } from "@/config/brand";
 
 const FAQ = [
   {
-    question: "How fast is delivery?",
+    question: "How do I start using the service?",
     answer:
-      "Delivery is automated. Purchased accounts and subscription links appear in your dashboard within a few minutes of payment confirmation.",
+      "Pick a duration on the plans page, complete checkout, and your subscription activates immediately. Then follow the setup guide — install a client, paste your subscription URL, connect.",
   },
   {
-    question: "What payment methods do you accept?",
+    question: "Which clients are supported?",
     answer:
-      "Credit and debit cards, major cryptocurrencies, and account balance. Balance can be topped up from your dashboard.",
+      "Any client that accepts a standard subscription URL. We publish a recommended client per platform — Windows, macOS, iOS, Android and Linux — in the setup guide.",
   },
   {
-    question: "What if an account stops working?",
+    question: "How many devices can I use?",
     answer:
-      "Open a replacement ticket from the support page. Valid claims within the subscription period are replaced free of charge — usually the same day.",
+      "Up to 5 devices at the same time. You can rename or remove devices anytime from the console.",
   },
   {
-    question: "Do you offer bulk pricing?",
+    question: "A region feels slow or unreachable. What should I do?",
     answer:
-      "Yes. Volume tiers apply automatically from 5 units up. The product page shows exact per-unit pricing at every quantity before you buy.",
+      "Check the network page for current region status and latency, then switch to another region in your client. If the problem persists, open a ticket with the affected region and time.",
   },
   {
-    question: "Can I get a refund?",
+    question: "What happens when my subscription expires?",
     answer:
-      "Undelivered or faulty items are refundable within the replacement window. Open a ticket and include your order number for the fastest resolution.",
+      "Access stops at expiry. Renewing before expiry extends your current end date, so no time is lost. Your subscription URL stays the same across renewals.",
+  },
+  {
+    question: "My subscription URL leaked. What now?",
+    answer:
+      "Go to Console → Subscription and regenerate the link. This invalidates the old URL immediately; update your clients with the new one.",
   },
 ];
 
 export function HelpPage() {
   return (
     <Container className="max-w-3xl py-12 md:py-16">
-      <Reveal>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Help Center
-        </h1>
-        <p className="mt-1.5 text-sm text-muted">
-          Answers to common questions. Signed-in users can also open a support
-          ticket.
-        </p>
-      </Reveal>
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        Help
+      </h1>
+      <p className="mt-1.5 text-sm text-muted">
+        Common questions. Signed-in users can open a ticket from the console.
+      </p>
 
-      <Reveal className="mt-10">
+      <div className="mt-8">
         <Accordion type="single" collapsible>
           {FAQ.map((item, i) => (
             <AccordionItem key={item.question} value={`help-${i}`}>
@@ -61,15 +61,15 @@ export function HelpPage() {
             </AccordionItem>
           ))}
         </Accordion>
-      </Reveal>
+      </div>
 
-      <Reveal className="mt-12 rounded-xl border border-border bg-surface p-6 sm:flex sm:items-center sm:justify-between">
+      <div className="mt-10 border-t border-border pt-8 sm:flex sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-[15px] font-semibold text-foreground">
-            Still need help?
+          <h2 className="text-sm font-semibold text-foreground">
+            Still stuck?
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Open a ticket and we'll get back to you, or write to{" "}
+            Open a ticket in the console, or write to{" "}
             <a
               href={`mailto:${brand.supportEmail}`}
               className="text-primary hover:underline focus-ring rounded-sm"
@@ -79,13 +79,10 @@ export function HelpPage() {
             .
           </p>
         </div>
-        <Button asChild variant="secondary" className="mt-4 sm:mt-0">
-          <Link to="/dashboard/support">
-            Open a ticket
-            <ArrowRight className="size-4" />
-          </Link>
+        <Button asChild variant="secondary" size="sm" className="mt-4 sm:mt-0">
+          <Link to="/console/support">Contact support</Link>
         </Button>
-      </Reveal>
+      </div>
     </Container>
   );
 }

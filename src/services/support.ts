@@ -9,6 +9,9 @@ import type { CreateTicketInput, Ticket } from "@/types";
 /**
  * Support tickets.
  * Backend contract: GET /tickets, POST /tickets
+ *
+ * Note: the create endpoint treats missing fields as a client error so the
+ * UI keeps the user's input on failure instead of resetting the form.
  */
 export interface SupportService {
   listTickets(): Promise<Ticket[]>;

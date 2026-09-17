@@ -19,83 +19,108 @@ endpoints expect `Authorization: Bearer <token>`. Error shape:
 | POST | `/auth/login` | `{ email, password }` | `{ user, token }` |
 | GET | `/auth/me` | — | `{ user }` |
 
-`401` on invalid credentials. Validation errors: `400` with field messages.
+`401` on invalid credentials.
 
-## Catalog (public)
+## Plans (public)
 
-| Method | Path | Query | Returns |
-|---|---|---|---|
-| GET | `/products` | `category?` `planDays?` `stock?` `search?` | `Product[]` |
-| GET | `/products/:slug` | — | `Product` (404 if missing) |
+| Method | Path | Returns |
+|---|---|---|
+| GET | `/plans` | `Plan[]` |
+| GET | `/plans/:id` | `Plan` (404 if missing) |
 
-`Product` shape: `src/types/index.ts` — includes `plans[]`, `tiers[]`
-(volume pricing), `stock { status, quantity }`, `features[]`, `notes[]`,
-`faq[]`. **Never expose supplier, cost, or internal inventory fields.**
+```json
+{ "id": "90d", "durationDays": 90, "label": "90 Days", "price": 18.9 }
+```
 
-## Cart & pricing
+One service (Network Access), three durations. The only variable is time.
 
-Pricing is computed client-side from `tiers` + `plans` (see
-`src/lib/pricing.ts`). The backend **must recompute and verify** prices at
-checkout — never trust client totals.
+## Network (public)
+
+| Method | Path | Returns |
+|---|---|---|
+| GET | `/network/status` | `NetworkStatus` |
+| GET | `/network/regions` | `Region[]` |
+
+```json
+// NetworkStatus
+{ "status": "operational", "activeRegions": 9, "totalRegions": 10, "updatedAt": "…" }
+// Region
+{ "id": "jp", "name": "Japan", "status": "available | degraded | offline", "latencyMs": 61 }
+```
+
+`latencyMs` may be `null` when no measurement exists — the UI renders `—`.
+
+## Billing
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| POST | `/orders` | `CreateOrderInput` | `Order` |
-| GET | `/orders` | — | `Order[]` (current user, newest first) |
-| GET | `/orders/:idOrNumber` | — | `Order` (404 if missing) |
+| GET | `/billing/payments` | — | `Payment[]` (current user, newest first) |
+| POST | `/billing/payments` | `CreatePaymentInput` | `Payment` |
 
-`CreateOrderInput`:
 ```json
+// CreatePaymentInput
 {
-  "items": [
-    {
-      "productSlug": "gemini-pro",
-      "name": "Gemini Pro",
-      "category": "ai",
-      "planLabel": "30 Days",
-      "quantity": 25,
-      "listUnitPrice": 19.9,
-      "unitPrice": 15.9
-    }
-  ],
+  "planId": "90d",
   "contact": { "name": "Alex Chen", "email": "alex@example.com" },
   "paymentMethod": "card | crypto | balance",
   "cardLast4": "4242"
 }
 ```
 
-`Order.status`: `paid | processing | delivered | refunded`.
-`Order.number` format: `NOVA-YYMMDD-NNNN`.
+A successful payment **activates or extends the subscription**: if the
+subscription is active, the duration is added to the current expiry; if
+expired, from the purchase time. Payment `status`:
+`completed | processing | refunded`. Payment `number` format:
+`NOVA-YYMMDD-NNNN`.
 
-## Library (purchased AI accounts)
-
-| Method | Path | Returns |
-|---|---|---|
-| GET | `/library/products` | `UserProduct[]` |
-| GET | `/library/products/:id` | `UserProduct` |
-
-`UserProduct.credentials { email, password }` — should only be served over
-authenticated TLS requests; the UI masks the password until the user reveals
-it.
-
-## Network subscriptions
+## Subscription
 
 | Method | Path | Returns |
 |---|---|---|
-| GET | `/subscriptions` | `Subscription[]` |
-| GET | `/subscriptions/:id` | `Subscription` |
-| POST | `/subscriptions/:id/regenerate-link` | `{ subscriptionToken }` |
+| GET | `/subscription` | `Subscription` |
+| POST | `/subscription/regenerate-link` | `{ subscriptionToken }` |
 
-`regenerate-link` **invalidates the previous token** (UI confirms first).
-`Subscription.regions[]` contains display names only — upstream/provider
-data stays server-side.
+```json
+// Subscription
+{
+  "id": "sub_01",
+  "name": "Network Access",
+  "status": "active | expired",
+  "planLabel": "90 Days",
+  "expiresAt": "2026-12-02T14:05:00Z",
+  "deviceLimit": 5,
+  "subscriptionToken": "9f2c7a1e4b6d4e8f"
+}
+```
+
+The subscription URL is assembled client-side as
+`https://sub.<domain>/s/<token>`. `regenerate-link` **must invalidate the
+previous token** — the UI warns and confirms before calling it.
+
+## Devices
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| GET | `/devices` | — | `Device[]` |
+| PATCH | `/devices/:id` | `{ name }` | `Device` |
+| DELETE | `/devices/:id` | — | `204` |
+
+```json
+{ "id": "dev_01", "name": "Windows Laptop", "platform": "windows | macos | ios | android | linux", "lastActiveAt": "…" }
+```
 
 ## Support
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | GET | `/tickets` | — | `Ticket[]` |
-| POST | `/tickets` | `{ subject, category, orderNumber?, message }` | `Ticket` |
+| POST | `/tickets` | `{ subject, category, paymentNumber?, message }` | `Ticket` |
 
-`category`: `account | subscription | payment | replacement | other`.
+`category`: `account | connection | payment | subscription | other`.
 `status`: `open | answered | closed`.
+
+## Server-side notes
+
+- Never expose supplier, upstream, node-ID, or cost fields in any response —
+  the frontend is the customer-facing boundary.
+- Prices are authoritative server-side; the client only displays them.

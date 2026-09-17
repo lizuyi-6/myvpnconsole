@@ -4,24 +4,24 @@
 
 @layer base {
   :root {
-    /* Deep black-blue canvas */
-    --background: 8 10 15;
+    /* Deep neutral gray-blue canvas — not pure black */
+    --background: 14 17 22;
     /* Slightly elevated surfaces */
-    --surface: 13 17 24;
-    --elevated: 19 24 33;
-    /* Barely-there borders */
-    --border: 28 34 46;
+    --surface: 18 22 29;
+    --elevated: 23 28 37;
+    /* Weak borders — hierarchy comes from spacing, not boxes */
+    --border: 33 39 50;
     /* High contrast, but not pure white */
-    --foreground: 229 232 240;
-    --muted: 148 157 175;
-    --subtle: 104 113 131;
-    /* Injected at runtime from src/config/brand.ts */
-    --primary: 94 106 210;
+    --foreground: 224 228 236;
+    --muted: 148 156 171;
+    --subtle: 103 111 126;
+    /* Single stable brand color, injected from src/config/brand.ts */
+    --primary: 76 130 247;
     --primary-foreground: 255 255 255;
     /* Status */
-    --success: 62 194 141;
-    --warning: 224 175 94;
-    --danger: 224 108 108;
+    --success: 63 178 138;
+    --warning: 208 166 96;
+    --danger: 212 106 106;
   }
 
   * {

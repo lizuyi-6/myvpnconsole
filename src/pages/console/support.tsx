@@ -2,12 +2,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LifeBuoy, Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
-import { TicketStatusBadge } from "@/components/feedback/status-badges";
-import { Badge } from "@/components/ui/badge";
+import { StatusDot } from "@/components/feedback/status-dot";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,14 +21,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useAsync } from "@/hooks/use-async";
 import { formatDate } from "@/lib/utils";
-import { orderService } from "@/services/orders";
+import { billingService } from "@/services/billing";
 import { supportService } from "@/services/support";
-import { TICKET_CATEGORY_LABELS, type TicketCategory } from "@/types";
+import {
+  TICKET_CATEGORY_LABELS,
+  type TicketCategory,
+  type TicketStatus,
+} from "@/types";
+
+const TICKET_STATUS: Record<
+  TicketStatus,
+  { label: string; tone: "success" | "warning" | "neutral" }
+> = {
+  open: { label: "Open", tone: "warning" },
+  answered: { label: "Answered", tone: "success" },
+  closed: { label: "Closed", tone: "neutral" },
+};
 
 const ticketSchema = z.object({
   subject: z.string().min(4, "Give your ticket a short subject"),
-  category: z.enum(["account", "subscription", "payment", "replacement", "other"]),
-  orderNumber: z.string().optional(),
+  category: z.enum([
+    "account",
+    "connection",
+    "payment",
+    "subscription",
+    "other",
+  ]),
+  paymentNumber: z.string().optional(),
   message: z.string().min(20, "Describe the issue in at least 20 characters"),
 });
 
@@ -38,10 +55,10 @@ type TicketForm = z.infer<typeof ticketSchema>;
 
 function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
-  const [searchParams] = useSearchParams();
-  const prefillOrder = searchParams.get("order") ?? "";
-
-  const orders = useAsync(() => orderService.listOrders(), [open]);
+  const payments = useAsync(
+    () => (open ? billingService.listPayments() : Promise.resolve([])),
+    [open],
+  );
 
   const {
     register,
@@ -52,8 +69,8 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
     resolver: zodResolver(ticketSchema),
     defaultValues: {
       subject: "",
-      category: "account",
-      orderNumber: prefillOrder,
+      category: "connection",
+      paymentNumber: "",
       message: "",
     },
   });
@@ -61,9 +78,9 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
   const onSubmit = handleSubmit(async (values) => {
     await supportService.createTicket({
       ...values,
-      orderNumber: values.orderNumber || undefined,
+      paymentNumber: values.paymentNumber || undefined,
     });
-    // Success: close and refresh the list; only reset after success
+    // Only reset after a successful submit — failures keep the user's text.
     reset();
     setOpen(false);
     onCreated();
@@ -80,8 +97,8 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
       <DialogContent>
         <DialogTitle>Create a ticket</DialogTitle>
         <DialogDescription>
-          Describe the issue and we'll get back to you. Fields stay filled if
-          submission fails.
+          Describe the issue and we'll get back to you. Your draft stays put
+          if submission fails.
         </DialogDescription>
 
         <form onSubmit={onSubmit} className="mt-5 space-y-4" noValidate>
@@ -89,7 +106,7 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
             <Label htmlFor="subject">Subject</Label>
             <Input
               id="subject"
-              placeholder="e.g. Replacement for Gemini Pro"
+              placeholder="e.g. Slow speeds on Japan in the evening"
               aria-invalid={!!errors.subject}
               {...register("subject")}
             />
@@ -115,12 +132,12 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="orderNumber">Related order</Label>
-              <Select id="orderNumber" {...register("orderNumber")}>
+              <Label htmlFor="paymentNumber">Related payment</Label>
+              <Select id="paymentNumber" {...register("paymentNumber")}>
                 <option value="">None</option>
-                {(orders.data ?? []).map((order) => (
-                  <option key={order.id} value={order.number}>
-                    {order.number}
+                {(payments.data ?? []).map((payment) => (
+                  <option key={payment.id} value={payment.number}>
+                    {payment.number}
                   </option>
                 ))}
               </Select>
@@ -167,16 +184,14 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-export function SupportPage() {
+export function ConsoleSupportPage() {
   const tickets = useAsync(() => supportService.listTickets(), []);
 
   return (
     <div>
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Support
-          </h1>
+          <h1 className="text-lg font-semibold text-foreground">Support</h1>
           <p className="mt-1 text-sm text-muted">
             Track existing tickets or open a new one.
           </p>
@@ -186,11 +201,11 @@ export function SupportPage() {
 
       <div className="mt-8">
         {tickets.loading ? (
-          <ul className="space-y-3">
+          <div className="space-y-3">
             {[0, 1].map((i) => (
-              <Skeleton key={i} className="h-20 rounded-xl" />
+              <Skeleton key={i} className="h-20 w-full" />
             ))}
-          </ul>
+          </div>
         ) : tickets.error ? (
           <ErrorState
             message="We couldn't load your tickets."
@@ -203,32 +218,32 @@ export function SupportPage() {
             message="You haven't opened any support tickets yet."
           />
         ) : (
-          <ul className="space-y-3">
+          <ul className="divide-y divide-border border-y border-border">
             {tickets.data.map((ticket) => (
-              <li
-                key={ticket.id}
-                className="rounded-xl border border-border bg-surface p-5"
-              >
+              <li key={ticket.id} className="py-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                     <h2 className="text-sm font-medium text-foreground">
                       {ticket.subject}
                     </h2>
-                    <TicketStatusBadge status={ticket.status} />
-                    <Badge variant="neutral">
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+                      <StatusDot tone={TICKET_STATUS[ticket.status].tone} />
+                      {TICKET_STATUS[ticket.status].label}
+                    </span>
+                    <span className="text-xs text-subtle">
                       {TICKET_CATEGORY_LABELS[ticket.category]}
-                    </Badge>
+                    </span>
                   </div>
                   <p className="text-xs text-subtle">
                     Updated {formatDate(ticket.updatedAt)}
                   </p>
                 </div>
-                <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-muted">
+                <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted">
                   {ticket.message}
                 </p>
-                {ticket.orderNumber && (
-                  <p className="mt-2 font-mono text-xs text-subtle">
-                    Order #{ticket.orderNumber}
+                {ticket.paymentNumber && (
+                  <p className="mt-1.5 font-mono text-xs text-subtle">
+                    Payment {ticket.paymentNumber}
                   </p>
                 )}
               </li>

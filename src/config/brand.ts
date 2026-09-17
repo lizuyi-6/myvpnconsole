@@ -9,20 +9,21 @@
 export const brand = {
   /** Brand display name */
   name: "NOVA",
-  /** Site <title> suffix */
-  siteTitle: "NOVA — Digital Services",
-  /** One-line description used for meta tags */
+  /** Site <title> */
+  siteTitle: "NOVA — Network Access",
+  /** One-line description used for meta tags and footer */
   description:
-    "One place to purchase, manage and renew your digital services.",
+    "Reliable network access. One subscription, multiple regions, simple setup across your devices.",
   /** Homepage hero */
   hero: {
-    title: "Digital services,\nwithout the friction.",
+    eyebrow: "NOVA Network",
+    title: "Reliable network access,\nready when you need it.",
     subtitle:
-      "One place to purchase, manage and renew your digital services.",
+      "One subscription. Multiple regions. Simple setup across your devices.",
   },
   /** Theme colors (hex). Primary is injected as a CSS variable at runtime. */
   colors: {
-    primary: "#5E6AD2",
+    primary: "#4C82F7",
     primaryForeground: "#FFFFFF",
   },
   /** Support destination shown in help pages */

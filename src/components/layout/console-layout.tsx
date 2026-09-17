@@ -1,17 +1,17 @@
 import {
+  CreditCard,
   LayoutGrid,
   LifeBuoy,
-  ListOrdered,
   LogOut,
   Menu,
-  Package,
+  MonitorSmartphone,
   Radio,
   Settings,
+  Wrench,
 } from "lucide-react";
 import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/brand/logo";
-import { Container } from "@/components/layout/container";
 import {
   Sheet,
   SheetContent,
@@ -22,20 +22,21 @@ import { cn, initialsOf } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", label: "Overview", icon: LayoutGrid, end: true },
-  { to: "/dashboard/orders", label: "Orders", icon: ListOrdered },
-  { to: "/dashboard/products", label: "My Products", icon: Package },
-  { to: "/dashboard/subscriptions", label: "Subscriptions", icon: Radio },
-  { to: "/dashboard/support", label: "Support", icon: LifeBuoy },
+  { to: "/console", label: "Overview", icon: LayoutGrid, end: true },
+  { to: "/console/subscription", label: "Subscription", icon: Radio },
+  { to: "/console/devices", label: "Devices", icon: MonitorSmartphone },
+  { to: "/console/setup", label: "Setup", icon: Wrench },
+  { to: "/console/billing", label: "Billing", icon: CreditCard },
+  { to: "/console/support", label: "Support", icon: LifeBuoy },
 ];
 
-function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate();
   const { user, signOut } = useAuthStore();
 
   return (
     <div className="flex h-full flex-col">
-      <nav aria-label="Dashboard" className="flex flex-col gap-0.5 p-3">
+      <nav aria-label="Console" className="flex flex-col gap-0.5 p-3">
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.to}
@@ -44,7 +45,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-ring",
+                "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 focus-ring",
                 isActive
                   ? "bg-white/[0.06] font-medium text-foreground"
                   : "text-muted hover:bg-white/[0.03] hover:text-foreground",
@@ -59,11 +60,11 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="mt-auto space-y-0.5 border-t border-border p-3">
         <NavLink
-          to="/dashboard/settings"
+          to="/console/settings"
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-ring",
+              "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 focus-ring",
               isActive
                 ? "bg-white/[0.06] font-medium text-foreground"
                 : "text-muted hover:bg-white/[0.03] hover:text-foreground",
@@ -79,14 +80,14 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             signOut();
             navigate("/");
           }}
-          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted transition-colors duration-150 hover:bg-white/[0.03] hover:text-foreground focus-ring"
+          className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted transition-colors duration-150 hover:bg-white/[0.03] hover:text-foreground focus-ring"
         >
           <LogOut className="size-4 shrink-0" />
           Sign out
         </button>
 
         {user && (
-          <div className="mt-2 flex items-center gap-2.5 rounded-lg px-3 py-2">
+          <div className="mt-2 flex items-center gap-2.5 px-3 py-2">
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
               {initialsOf(user.name)}
             </span>
@@ -103,47 +104,58 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function DashboardLayout() {
+/**
+ * Console is a standalone shell — the public marketing navigation
+ * is intentionally not shown here.
+ */
+export function ConsoleLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <Container className="py-8 md:py-10">
-      <div className="md:grid md:grid-cols-[220px_1fr] md:gap-10">
+    <div className="flex min-h-screen">
+      {/* Desktop sidebar */}
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border/70 bg-surface/40 md:flex">
+        <div className="flex h-14 items-center border-b border-border/70 px-5">
+          <Link to="/" aria-label="NOVA home" className="focus-ring rounded-md">
+            <Logo />
+          </Link>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <ConsoleNav />
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar with drawer */}
-        <div className="mb-6 flex items-center justify-between md:hidden">
-          <span className="text-sm font-medium text-muted">Dashboard</span>
+        <div className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/70 bg-background/85 px-5 backdrop-blur-md md:hidden">
+          <Link to="/" aria-label="NOVA home" className="focus-ring rounded-md">
+            <Logo />
+          </Link>
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
               <button
-                aria-label="Open dashboard menu"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:bg-white/5 hover:text-foreground focus-ring"
+                aria-label="Open console menu"
+                className="flex h-9 w-9 items-center justify-center rounded-md text-muted transition-colors hover:bg-white/5 hover:text-foreground focus-ring"
               >
-                <Menu className="size-4" />
+                <Menu className="size-5" />
               </button>
             </SheetTrigger>
             <SheetContent aria-describedby={undefined}>
-              <SheetTitle className="sr-only">Dashboard menu</SheetTitle>
+              <SheetTitle className="sr-only">Console menu</SheetTitle>
               <div className="border-b border-border p-5">
                 <Logo />
               </div>
               <div className="flex-1 overflow-y-auto">
-                <SidebarNav onNavigate={() => setMenuOpen(false)} />
+                <ConsoleNav onNavigate={() => setMenuOpen(false)} />
               </div>
             </SheetContent>
           </Sheet>
         </div>
 
-        {/* Desktop sidebar */}
-        <aside className="hidden md:block">
-          <div className="sticky top-24 rounded-xl border border-border bg-surface">
-            <SidebarNav />
-          </div>
-        </aside>
-
-        <div className="min-w-0">
+        <main className="mx-auto w-full max-w-[960px] flex-1 px-5 py-8 sm:px-8 md:py-10">
           <Outlet />
-        </div>
+        </main>
       </div>
-    </Container>
+    </div>
   );
 }

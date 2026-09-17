@@ -1,22 +1,21 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, CreditCard, Loader2, ShoppingCart, Wallet, Bitcoin } from "lucide-react";
+import { AlertCircle, Bitcoin, CreditCard, Loader2, Wallet } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
-import { EmptyState } from "@/components/feedback/empty-state";
+import { ErrorState } from "@/components/feedback/error-state";
 import { Container } from "@/components/layout/container";
-import { ProductIconTile } from "@/components/product/product-icon-tile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
-import { cartTotals, resolveCartItems, toOrderItems } from "@/lib/cart";
 import { cn, formatCurrency } from "@/lib/utils";
-import { orderService } from "@/services/orders";
-import { productService } from "@/services/products";
+import { SERVICE_NAME } from "@/mocks/plans";
+import { billingService } from "@/services/billing";
+import { planService } from "@/services/plans";
 import { useAuthStore } from "@/store/auth";
-import { useCartStore } from "@/store/cart";
 import type { PaymentMethod } from "@/types";
 
 const checkoutSchema = z
@@ -58,41 +57,21 @@ type CheckoutForm = z.infer<typeof checkoutSchema>;
 const PAYMENT_OPTIONS: {
   value: PaymentMethod;
   label: string;
-  description: string;
   icon: typeof CreditCard;
 }[] = [
-  {
-    value: "card",
-    label: "Credit / Debit Card",
-    description: "Visa, Mastercard, Amex",
-    icon: CreditCard,
-  },
-  {
-    value: "crypto",
-    label: "Crypto",
-    description: "BTC, ETH, USDT",
-    icon: Bitcoin,
-  },
-  {
-    value: "balance",
-    label: "Balance",
-    description: "Use your account balance",
-    icon: Wallet,
-  },
+  { value: "card", label: "Credit / Debit Card", icon: CreditCard },
+  { value: "crypto", label: "Crypto", icon: Bitcoin },
+  { value: "balance", label: "Balance", icon: Wallet },
 ];
 
 export function CheckoutPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const planId = searchParams.get("plan") ?? "30d";
   const user = useAuthStore((s) => s.user);
-  const items = useCartStore((s) => s.items);
-  const clearCart = useCartStore((s) => s.clear);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Warm the catalog cache so product data is fresh for pricing
-  useAsync(() => productService.listProducts(), []);
-
-  const resolved = resolveCartItems(items);
-  const totals = cartTotals(resolved);
+  const plan = useAsync(() => planService.getPlan(planId), [planId]);
 
   const {
     register,
@@ -113,28 +92,37 @@ export function CheckoutPage() {
 
   const paymentMethod = watch("paymentMethod");
 
-  if (resolved.length === 0) {
+  if (plan.loading) {
     return (
-      <Container className="py-12 md:py-16">
-        <EmptyState
-          icon={ShoppingCart}
-          title="Nothing to check out"
-          message="Your cart is empty. Add products before heading to checkout."
-          action={
-            <Button asChild>
-              <Link to="/products">Browse products</Link>
-            </Button>
-          }
-        />
+      <Container className="max-w-2xl py-12 md:py-16">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="mt-6 h-16 w-full" />
+        <Skeleton className="mt-4 h-40 w-full" />
       </Container>
     );
   }
 
+  if (plan.error || !plan.data) {
+    return (
+      <Container className="max-w-2xl py-12 md:py-16">
+        <ErrorState
+          title="This plan isn't available"
+          message="The selected plan could not be found. Pick a duration on the plans page."
+        />
+        <Button asChild variant="secondary" className="mt-6">
+          <Link to="/plans">Back to plans</Link>
+        </Button>
+      </Container>
+    );
+  }
+
+  const selectedPlan = plan.data;
+
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
     try {
-      const order = await orderService.createOrder({
-        items: toOrderItems(resolved),
+      await billingService.createPayment({
+        planId: selectedPlan.id,
         contact: { name: values.name, email: values.email },
         paymentMethod: values.paymentMethod,
         cardLast4:
@@ -142,8 +130,7 @@ export function CheckoutPage() {
             ? values.cardNumber.replace(/\s/g, "").slice(-4)
             : undefined,
       });
-      clearCart();
-      navigate(`/order/success/${order.id}`);
+      navigate("/access/activated");
     } catch (err) {
       // Form values are preserved by react-hook-form — nothing resets.
       setSubmitError(
@@ -153,250 +140,193 @@ export function CheckoutPage() {
   });
 
   return (
-    <Container className="py-12 md:py-16">
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+    <Container className="max-w-2xl py-12 md:py-16">
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">
         Checkout
       </h1>
-      <p className="mt-1.5 text-sm text-muted">
-        Everything on one page — review your order, add contact details and pay.
-      </p>
 
-      <form
-        onSubmit={onSubmit}
-        className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]"
-        noValidate
-      >
-        <div className="space-y-8">
-          {/* Contact */}
-          <section className="rounded-xl border border-border bg-surface p-6">
-            <h2 className="text-[15px] font-semibold text-foreground">
-              Contact
-            </h2>
-            <p className="mt-1 text-xs text-subtle">
-              Delivery and receipts go to this email.
-            </p>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="name">Full name</Label>
-                <Input
-                  id="name"
-                  autoComplete="name"
-                  aria-invalid={!!errors.name}
-                  {...register("name")}
-                />
-                {errors.name && (
-                  <p className="text-xs text-danger">{errors.name.message}</p>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  aria-invalid={!!errors.email}
-                  {...register("email")}
-                />
-                {errors.email && (
-                  <p className="text-xs text-danger">{errors.email.message}</p>
-                )}
-              </div>
+      {/* What you're activating — a line item, not a product card */}
+      <div className="mt-8 flex items-center justify-between border-y border-border py-4">
+        <div>
+          <p className="text-sm font-medium text-foreground">{SERVICE_NAME}</p>
+          <p className="mt-0.5 text-xs text-subtle">
+            {selectedPlan.label} · activates immediately after payment
+          </p>
+        </div>
+        <p className="text-lg font-semibold tabular-nums text-foreground">
+          {formatCurrency(selectedPlan.price)}
+        </p>
+      </div>
+
+      <form onSubmit={onSubmit} className="mt-8 space-y-10" noValidate>
+        {/* Contact */}
+        <section>
+          <h2 className="text-sm font-semibold text-foreground">Contact</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Full name</Label>
+              <Input
+                id="name"
+                autoComplete="name"
+                aria-invalid={!!errors.name}
+                {...register("name")}
+              />
+              {errors.name && (
+                <p className="text-xs text-danger">{errors.name.message}</p>
+              )}
             </div>
-          </section>
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                aria-invalid={!!errors.email}
+                {...register("email")}
+              />
+              {errors.email && (
+                <p className="text-xs text-danger">{errors.email.message}</p>
+              )}
+            </div>
+          </div>
+        </section>
 
-          {/* Payment */}
-          <section className="rounded-xl border border-border bg-surface p-6">
-            <h2 className="text-[15px] font-semibold text-foreground">
-              Payment
-            </h2>
-            <div
-              role="radiogroup"
-              aria-label="Payment method"
-              className="mt-5 grid gap-3 sm:grid-cols-3"
-            >
-              {PAYMENT_OPTIONS.map((option) => {
-                const selected = paymentMethod === option.value;
-                return (
-                  <label
-                    key={option.value}
+        {/* Payment */}
+        <section>
+          <h2 className="text-sm font-semibold text-foreground">
+            Payment method
+          </h2>
+          <div
+            role="radiogroup"
+            aria-label="Payment method"
+            className="mt-4 divide-y divide-border border-y border-border"
+          >
+            {PAYMENT_OPTIONS.map((option) => {
+              const selected = paymentMethod === option.value;
+              return (
+                <label
+                  key={option.value}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-3 py-3.5 transition-colors",
+                    !selected && "opacity-70 hover:opacity-100",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    value={option.value}
+                    className="size-4 accent-[rgb(var(--primary))] focus-ring"
+                    {...register("paymentMethod")}
+                  />
+                  <option.icon
                     className={cn(
-                      "flex cursor-pointer flex-col gap-2 rounded-lg border p-4 transition-colors duration-150 focus-within:ring-2 focus-within:ring-primary/70",
-                      selected
-                        ? "border-primary/50 bg-primary/[0.06]"
-                        : "border-border hover:border-white/[0.14]",
+                      "size-4",
+                      selected ? "text-primary" : "text-subtle",
                     )}
-                  >
-                    <input
-                      type="radio"
-                      value={option.value}
-                      className="sr-only"
-                      {...register("paymentMethod")}
-                    />
-                    <option.icon
-                      className={cn(
-                        "size-5",
-                        selected ? "text-primary" : "text-subtle",
-                      )}
-                    />
-                    <span className="text-sm font-medium text-foreground">
-                      {option.label}
-                    </span>
-                    <span className="text-xs text-subtle">
-                      {option.description}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
+                  />
+                  <span className="text-sm text-foreground">{option.label}</span>
+                </label>
+              );
+            })}
+          </div>
 
-            {paymentMethod === "card" && (
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="cardNumber">Card number</Label>
-                  <Input
-                    id="cardNumber"
-                    inputMode="numeric"
-                    autoComplete="cc-number"
-                    placeholder="4242 4242 4242 4242"
-                    aria-invalid={!!errors.cardNumber}
-                    {...register("cardNumber")}
-                  />
-                  {errors.cardNumber && (
-                    <p className="text-xs text-danger">
-                      {errors.cardNumber.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="cardExpiry">Expiry</Label>
-                  <Input
-                    id="cardExpiry"
-                    inputMode="numeric"
-                    autoComplete="cc-exp"
-                    placeholder="MM/YY"
-                    aria-invalid={!!errors.cardExpiry}
-                    {...register("cardExpiry")}
-                  />
-                  {errors.cardExpiry && (
-                    <p className="text-xs text-danger">
-                      {errors.cardExpiry.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="cardCvc">CVC</Label>
-                  <Input
-                    id="cardCvc"
-                    inputMode="numeric"
-                    autoComplete="cc-csc"
-                    placeholder="123"
-                    aria-invalid={!!errors.cardCvc}
-                    {...register("cardCvc")}
-                  />
-                  {errors.cardCvc && (
-                    <p className="text-xs text-danger">{errors.cardCvc.message}</p>
-                  )}
-                </div>
+          {paymentMethod === "card" && (
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="cardNumber">Card number</Label>
+                <Input
+                  id="cardNumber"
+                  inputMode="numeric"
+                  autoComplete="cc-number"
+                  placeholder="4242 4242 4242 4242"
+                  aria-invalid={!!errors.cardNumber}
+                  {...register("cardNumber")}
+                />
+                {errors.cardNumber && (
+                  <p className="text-xs text-danger">
+                    {errors.cardNumber.message}
+                  </p>
+                )}
               </div>
-            )}
-
-            {paymentMethod === "crypto" && (
-              <p className="mt-5 rounded-lg border border-border bg-white/[0.02] px-4 py-3 text-[13px] text-muted">
-                After you place the order, a payment address with the exact
-                amount will be shown. The order confirms automatically once the
-                transaction is detected. (Mock — completes instantly.)
-              </p>
-            )}
-
-            {paymentMethod === "balance" && (
-              <p className="mt-5 rounded-lg border border-border bg-white/[0.02] px-4 py-3 text-[13px] text-muted">
-                The total will be deducted from your account balance. (Mock —
-                completes instantly.)
-              </p>
-            )}
-          </section>
-
-          {submitError && (
-            <div
-              role="alert"
-              className="flex items-start gap-2.5 rounded-lg border border-danger/30 bg-danger/[0.08] px-4 py-3 text-sm text-danger"
-            >
-              <AlertCircle className="mt-0.5 size-4 shrink-0" />
-              {submitError}
+              <div className="space-y-1.5">
+                <Label htmlFor="cardExpiry">Expiry</Label>
+                <Input
+                  id="cardExpiry"
+                  inputMode="numeric"
+                  autoComplete="cc-exp"
+                  placeholder="MM/YY"
+                  aria-invalid={!!errors.cardExpiry}
+                  {...register("cardExpiry")}
+                />
+                {errors.cardExpiry && (
+                  <p className="text-xs text-danger">
+                    {errors.cardExpiry.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cardCvc">CVC</Label>
+                <Input
+                  id="cardCvc"
+                  inputMode="numeric"
+                  autoComplete="cc-csc"
+                  placeholder="123"
+                  aria-invalid={!!errors.cardCvc}
+                  {...register("cardCvc")}
+                />
+                {errors.cardCvc && (
+                  <p className="text-xs text-danger">{errors.cardCvc.message}</p>
+                )}
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Summary */}
-        <aside className="h-fit rounded-xl border border-border bg-surface p-6 lg:sticky lg:top-24">
-          <h2 className="text-[15px] font-semibold text-foreground">
-            Your order
-          </h2>
-          <ul className="mt-4 space-y-4">
-            {resolved.map((item) => (
-              <li key={item.key} className="flex items-center gap-3">
-                <ProductIconTile
-                  icon={item.product.icon}
-                  accent={item.product.accent}
-                  size="sm"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {item.product.name}
-                  </p>
-                  <p className="text-xs text-subtle">
-                    {item.plan.label} · ×{item.quantity}
-                  </p>
-                </div>
-                <p className="text-sm tabular-nums text-foreground">
-                  {formatCurrency(item.lineTotal)}
-                </p>
-              </li>
-            ))}
-          </ul>
+          {paymentMethod === "crypto" && (
+            <p className="mt-4 text-[13px] leading-relaxed text-muted">
+              After you confirm, a payment address with the exact amount is
+              shown. Access activates when the transaction is detected. (Mock —
+              completes instantly.)
+            </p>
+          )}
 
-          <dl className="mt-5 space-y-2.5 border-t border-border pt-4 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted">Subtotal</dt>
-              <dd className="tabular-nums text-foreground">
-                {formatCurrency(totals.subtotal)}
-              </dd>
-            </div>
-            {totals.discount > 0 && (
-              <div className="flex justify-between">
-                <dt className="text-muted">Volume discount</dt>
-                <dd className="tabular-nums text-success">
-                  −{formatCurrency(totals.discount)}
-                </dd>
-              </div>
-            )}
-            <div className="flex justify-between border-t border-border pt-3 text-base">
-              <dt className="font-medium text-foreground">Total</dt>
-              <dd className="font-semibold tabular-nums text-foreground">
-                {formatCurrency(totals.total)}
-              </dd>
-            </div>
-          </dl>
+          {paymentMethod === "balance" && (
+            <p className="mt-4 text-[13px] leading-relaxed text-muted">
+              The amount is deducted from your account balance. (Mock —
+              completes instantly.)
+            </p>
+          )}
+        </section>
 
-          <Button
-            type="submit"
-            size="lg"
-            className="mt-6 w-full"
-            disabled={isSubmitting}
+        {submitError && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-md border border-danger/30 bg-danger/[0.08] px-4 py-3 text-sm text-danger"
           >
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
+            {submitError}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted">
+            Total due today{" "}
+            <span className="font-semibold tabular-nums text-foreground">
+              {formatCurrency(selectedPlan.price)}
+            </span>
+          </p>
+          <Button type="submit" size="lg" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Processing…
+                Activating…
               </>
             ) : (
-              <>Pay {formatCurrency(totals.total)}</>
+              <>Activate access — {formatCurrency(selectedPlan.price)}</>
             )}
           </Button>
-          <p className="mt-3 text-center text-xs text-subtle">
-            Mock checkout — no real payment is processed.
-          </p>
-        </aside>
+        </div>
+        <p className="text-xs text-subtle">
+          Mock checkout — no real payment is processed.
+        </p>
       </form>
     </Container>
   );
