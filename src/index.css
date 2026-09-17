@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Deep black-blue canvas */
+    --background: 8 10 15;
+    /* Slightly elevated surfaces */
+    --surface: 13 17 24;
+    --elevated: 19 24 33;
+    /* Barely-there borders */
+    --border: 28 34 46;
+    /* High contrast, but not pure white */
+    --foreground: 229 232 240;
+    --muted: 148 157 175;
+    --subtle: 104 113 131;
+    /* Injected at runtime from src/config/brand.ts */
+    --primary: 94 106 210;
+    --primary-foreground: 255 255 255;
+    /* Status */
+    --success: 62 194 141;
+    --warning: 224 175 94;
+    --danger: 224 108 108;
+  }
+
+  * {
+    border-color: rgb(var(--border));
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  ::selection {
+    background: rgb(var(--primary) / 0.28);
+  }
+
+  /* Subtle, dark scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--border));
+    border-radius: 8px;
+    border: 2px solid rgb(var(--background));
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Respect users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Consistent visible focus ring for keyboard navigation */
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
