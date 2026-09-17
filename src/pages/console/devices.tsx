@@ -87,7 +87,7 @@ export function ConsoleDevicesPage() {
     <div>
       <div className="flex items-baseline justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold text-foreground">Devices</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Devices</h1>
           <p className="mt-1 text-sm text-muted">
             Devices using your subscription. Rename for clarity, remove what
             you no longer use.
@@ -115,6 +115,7 @@ export function ConsoleDevicesPage() {
             }
           />
         ) : (
+          <div className="overflow-hidden rounded-xl border border-border bg-surface px-3 shadow-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -161,6 +162,7 @@ export function ConsoleDevicesPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
       </div>
 

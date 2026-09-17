@@ -19,9 +19,16 @@ export interface Plan {
 
 export type RegionStatus = "available" | "degraded" | "offline";
 
+export type RegionArea =
+  | "North America"
+  | "Asia Pacific"
+  | "Europe"
+  | "Oceania";
+
 export interface Region {
   id: string;
   name: string;
+  area: RegionArea;
   status: RegionStatus;
   latencyMs: number | null;
 }

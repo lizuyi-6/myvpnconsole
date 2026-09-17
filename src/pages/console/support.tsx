@@ -191,7 +191,7 @@ export function ConsoleSupportPage() {
     <div>
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold text-foreground">Support</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Support</h1>
           <p className="mt-1 text-sm text-muted">
             Track existing tickets or open a new one.
           </p>
@@ -218,9 +218,9 @@ export function ConsoleSupportPage() {
             message="You haven't opened any support tickets yet."
           />
         ) : (
-          <ul className="divide-y divide-border border-y border-border">
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface px-5 shadow-card">
             {tickets.data.map((ticket) => (
-              <li key={ticket.id} className="py-4">
+              <li key={ticket.id} className="py-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                     <h2 className="text-sm font-medium text-foreground">

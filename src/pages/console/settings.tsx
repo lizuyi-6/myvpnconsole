@@ -14,10 +14,10 @@ export function ConsoleSettingsPage() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="text-lg font-semibold text-foreground">Settings</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">Settings</h1>
 
-      <section className="mt-6 border-t border-border py-6">
-        <h2 className="text-sm font-semibold text-foreground">Profile</h2>
+      <section className="mt-6 rounded-xl border border-border bg-surface p-6 shadow-card">
+        <h2 className="text-[15px] font-semibold text-foreground">Profile</h2>
         <div className="mt-4 space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="settings-name">Full name</Label>
@@ -54,8 +54,8 @@ export function ConsoleSettingsPage() {
         </div>
       </section>
 
-      <section className="border-t border-border py-6">
-        <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
+      <section className="mt-6 rounded-xl border border-border bg-surface p-6 shadow-card">
+        <h2 className="text-[15px] font-semibold text-foreground">Notifications</h2>
         <div className="mt-2 divide-y divide-border/60">
           <div className="flex items-center justify-between gap-4 py-3.5">
             <div>

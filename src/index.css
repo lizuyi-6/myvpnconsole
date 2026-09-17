@@ -4,24 +4,31 @@
 
 @layer base {
   :root {
-    /* Deep neutral gray-blue canvas — not pure black */
-    --background: 14 17 22;
-    /* Slightly elevated surfaces */
-    --surface: 18 22 29;
-    --elevated: 23 28 37;
-    /* Weak borders — hierarchy comes from spacing, not boxes */
-    --border: 33 39 50;
-    /* High contrast, but not pure white */
-    --foreground: 224 228 236;
-    --muted: 148 156 171;
-    --subtle: 103 111 126;
-    /* Single stable brand color, injected from src/config/brand.ts */
-    --primary: 76 130 247;
+    /* Light-first canvas — very light cool gray */
+    --background: 246 248 251;
+    /* White surfaces */
+    --surface: 255 255 255;
+    --elevated: 255 255 255;
+    /* Soft gray-blue borders */
+    --border: 224 230 240;
+    /* Deep navy text */
+    --foreground: 23 32 51;
+    /* Soft gray-blue secondary text */
+    --muted: 85 97 122;
+    --subtle: 127 138 160;
+    /* Stable network blue, injected from src/config/brand.ts */
+    --primary: 40 103 232;
     --primary-foreground: 255 255 255;
+    /* Light blue section tint */
+    --tint: 238 244 255;
+    /* Dark navy for footer / contrast sections */
+    --navy: 16 24 40;
+    --navy-foreground: 235 239 246;
+    --navy-muted: 152 163 184;
     /* Status */
-    --success: 63 178 138;
-    --warning: 208 166 96;
-    --danger: 212 106 106;
+    --success: 26 135 84;
+    --warning: 176 124 30;
+    --danger: 198 64 64;
   }
 
   * {
@@ -40,10 +47,10 @@
   }
 
   ::selection {
-    background: rgb(var(--primary) / 0.28);
+    background: rgb(var(--primary) / 0.18);
   }
 
-  /* Subtle, dark scrollbar */
+  /* Light scrollbar */
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -52,6 +59,9 @@
     background: rgb(var(--border));
     border-radius: 8px;
     border: 2px solid rgb(var(--background));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--subtle) / 0.5);
   }
   ::-webkit-scrollbar-track {
     background: transparent;

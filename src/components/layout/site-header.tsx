@@ -23,8 +23,10 @@ const NAV_LINKS = [
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return cn(
-    "rounded-md px-3 py-1.5 text-sm transition-colors duration-150 focus-ring",
-    isActive ? "text-foreground" : "text-muted hover:text-foreground",
+    "relative rounded-md px-3 py-2 text-sm transition-colors duration-150 focus-ring",
+    isActive
+      ? "font-medium text-foreground after:absolute after:inset-x-3 after:-bottom-[17px] after:h-0.5 after:rounded-full after:bg-primary"
+      : "text-muted hover:text-foreground",
   );
 }
 
@@ -33,9 +35,9 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
-      <Container className="flex h-14 items-center justify-between gap-4">
-        <div className="flex items-center gap-7">
+    <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/90 backdrop-blur-md">
+      <Container className="flex h-16 items-center justify-between gap-4">
+        <div className="flex items-center gap-8">
           <Link to="/" aria-label="NOVA home" className="focus-ring rounded-md">
             <Logo />
           </Link>
@@ -69,7 +71,7 @@ export function SiteHeader() {
             <SheetTrigger asChild>
               <button
                 aria-label="Open menu"
-                className="flex h-9 w-9 items-center justify-center rounded-md text-muted transition-colors hover:bg-white/5 hover:text-foreground focus-ring md:hidden"
+                className="flex h-9 w-9 items-center justify-center rounded-md text-muted transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-ring md:hidden"
               >
                 <Menu className="size-5" />
               </button>
@@ -84,7 +86,7 @@ export function SiteHeader() {
                   <SheetClose asChild key={link.to}>
                     <Link
                       to={link.to}
-                      className="rounded-md px-3 py-2.5 text-sm text-muted transition-colors hover:bg-white/5 hover:text-foreground focus-ring"
+                      className="rounded-md px-3 py-2.5 text-sm text-muted transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-ring"
                     >
                       {link.label}
                     </Link>

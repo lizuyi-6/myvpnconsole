@@ -30,6 +30,15 @@ const NAV_ITEMS = [
   { to: "/console/support", label: "Support", icon: LifeBuoy },
 ];
 
+function consoleNavClass(isActive: boolean) {
+  return cn(
+    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-ring",
+    isActive
+      ? "bg-tint font-medium text-primary"
+      : "text-muted hover:bg-foreground/[0.04] hover:text-foreground",
+  );
+}
+
 function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate();
   const { user, signOut } = useAuthStore();
@@ -43,14 +52,7 @@ function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
             to={item.to}
             end={item.end}
             onClick={onNavigate}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 focus-ring",
-                isActive
-                  ? "bg-white/[0.06] font-medium text-foreground"
-                  : "text-muted hover:bg-white/[0.03] hover:text-foreground",
-              )
-            }
+            className={({ isActive }) => consoleNavClass(isActive)}
           >
             <item.icon className="size-4 shrink-0" />
             {item.label}
@@ -62,14 +64,7 @@ function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
         <NavLink
           to="/console/settings"
           onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 focus-ring",
-              isActive
-                ? "bg-white/[0.06] font-medium text-foreground"
-                : "text-muted hover:bg-white/[0.03] hover:text-foreground",
-            )
-          }
+          className={({ isActive }) => consoleNavClass(isActive)}
         >
           <Settings className="size-4 shrink-0" />
           Settings
@@ -80,15 +75,15 @@ function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
             signOut();
             navigate("/");
           }}
-          className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted transition-colors duration-150 hover:bg-white/[0.03] hover:text-foreground focus-ring"
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted transition-colors duration-150 hover:bg-foreground/[0.04] hover:text-foreground focus-ring"
         >
           <LogOut className="size-4 shrink-0" />
           Sign out
         </button>
 
         {user && (
-          <div className="mt-2 flex items-center gap-2.5 px-3 py-2">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
+          <div className="mt-2 flex items-center gap-2.5 rounded-lg border border-border bg-background px-3 py-2.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-tint text-xs font-semibold text-primary">
               {initialsOf(user.name)}
             </span>
             <div className="min-w-0">
@@ -112,10 +107,10 @@ export function ConsoleLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border/70 bg-surface/40 md:flex">
-        <div className="flex h-14 items-center border-b border-border/70 px-5">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
+        <div className="flex h-16 items-center border-b border-border px-5">
           <Link to="/" aria-label="NOVA home" className="focus-ring rounded-md">
             <Logo />
           </Link>
@@ -127,7 +122,7 @@ export function ConsoleLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar with drawer */}
-        <div className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/70 bg-background/85 px-5 backdrop-blur-md md:hidden">
+        <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-surface/90 px-5 backdrop-blur-md md:hidden">
           <Link to="/" aria-label="NOVA home" className="focus-ring rounded-md">
             <Logo />
           </Link>
@@ -135,7 +130,7 @@ export function ConsoleLayout() {
             <SheetTrigger asChild>
               <button
                 aria-label="Open console menu"
-                className="flex h-9 w-9 items-center justify-center rounded-md text-muted transition-colors hover:bg-white/5 hover:text-foreground focus-ring"
+                className="flex h-9 w-9 items-center justify-center rounded-md text-muted transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-ring"
               >
                 <Menu className="size-5" />
               </button>
@@ -152,7 +147,7 @@ export function ConsoleLayout() {
           </Sheet>
         </div>
 
-        <main className="mx-auto w-full max-w-[960px] flex-1 px-5 py-8 sm:px-8 md:py-10">
+        <main className="mx-auto w-full max-w-[1080px] flex-1 px-5 py-8 sm:px-8 md:py-10">
           <Outlet />
         </main>
       </div>

@@ -17,13 +17,13 @@ export const brand = {
   /** Homepage hero */
   hero: {
     eyebrow: "NOVA Network",
-    title: "Reliable network access,\nready when you need it.",
+    title: "Global access.\nOne simple subscription.",
     subtitle:
-      "One subscription. Multiple regions. Simple setup across your devices.",
+      "Connect your devices through a reliable global network with one subscription and a straightforward setup.",
   },
   /** Theme colors (hex). Primary is injected as a CSS variable at runtime. */
   colors: {
-    primary: "#4C82F7",
+    primary: "#2867E8",
     primaryForeground: "#FFFFFF",
   },
   /** Support destination shown in help pages */

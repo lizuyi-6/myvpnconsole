@@ -4,19 +4,22 @@ import { cn } from "@/lib/utils";
 /**
  * Brand logo: minimal geometric mark + wordmark.
  * Swap `brand.name` in src/config/brand.ts to rebrand.
+ * `dark` renders the wordmark for dark (navy) surfaces.
  */
 export function Logo({
   className,
   markOnly = false,
+  dark = false,
 }: {
   className?: string;
   markOnly?: boolean;
+  dark?: boolean;
 }) {
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
+    <span className={cn("inline-flex items-center gap-2.5", className)}>
       <svg
-        width="20"
-        height="20"
+        width="22"
+        height="22"
         viewBox="0 0 24 24"
         fill="none"
         aria-hidden
@@ -31,7 +34,12 @@ export function Logo({
         <circle cx="12" cy="12" r="2.5" fill="rgb(var(--primary))" />
       </svg>
       {!markOnly && (
-        <span className="text-[15px] font-semibold tracking-[0.18em] text-foreground">
+        <span
+          className={cn(
+            "text-base font-semibold tracking-[0.18em]",
+            dark ? "text-navy-foreground" : "text-foreground",
+          )}
+        >
           {brand.name}
         </span>
       )}

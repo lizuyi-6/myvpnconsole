@@ -15,9 +15,18 @@ export default {
         subtle: "rgb(var(--subtle) / <alpha-value>)",
         primary: "rgb(var(--primary) / <alpha-value>)",
         "primary-foreground": "rgb(var(--primary-foreground) / <alpha-value>)",
+        tint: "rgb(var(--tint) / <alpha-value>)",
+        navy: "rgb(var(--navy) / <alpha-value>)",
+        "navy-foreground": "rgb(var(--navy-foreground) / <alpha-value>)",
+        "navy-muted": "rgb(var(--navy-muted) / <alpha-value>)",
         success: "rgb(var(--success) / <alpha-value>)",
         warning: "rgb(var(--warning) / <alpha-value>)",
         danger: "rgb(var(--danger) / <alpha-value>)",
+      },
+      boxShadow: {
+        card: "0 1px 2px rgb(16 24 40 / 0.05), 0 8px 24px rgb(16 24 40 / 0.05)",
+        panel:
+          "0 1px 2px rgb(16 24 40 / 0.06), 0 12px 32px rgb(16 24 40 / 0.07)",
       },
       fontFamily: {
         sans: [

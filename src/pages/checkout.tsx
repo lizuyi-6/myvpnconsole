@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
 import { cn, formatCurrency } from "@/lib/utils";
-import { SERVICE_NAME } from "@/mocks/plans";
+import { DEVICE_LIMIT, SERVICE_NAME } from "@/mocks/plans";
 import { billingService } from "@/services/billing";
 import { planService } from "@/services/plans";
 import { useAuthStore } from "@/store/auth";
@@ -94,17 +94,16 @@ export function CheckoutPage() {
 
   if (plan.loading) {
     return (
-      <Container className="max-w-2xl py-12 md:py-16">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="mt-6 h-16 w-full" />
-        <Skeleton className="mt-4 h-40 w-full" />
+      <Container className="max-w-5xl py-14 md:py-20">
+        <Skeleton className="h-9 w-40" />
+        <Skeleton className="mt-8 h-[420px] w-full" />
       </Container>
     );
   }
 
   if (plan.error || !plan.data) {
     return (
-      <Container className="max-w-2xl py-12 md:py-16">
+      <Container className="max-w-2xl py-14 md:py-20">
         <ErrorState
           title="This plan isn't available"
           message="The selected plan could not be found. Pick a duration on the plans page."
@@ -140,180 +139,175 @@ export function CheckoutPage() {
   });
 
   return (
-    <Container className="max-w-2xl py-12 md:py-16">
-      <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+    <Container className="max-w-5xl py-14 md:py-20">
+      <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
         Checkout
       </h1>
 
-      {/* What you're activating — a line item, not a product card */}
-      <div className="mt-8 flex items-center justify-between border-y border-border py-4">
-        <div>
-          <p className="text-sm font-medium text-foreground">{SERVICE_NAME}</p>
-          <p className="mt-0.5 text-xs text-subtle">
-            {selectedPlan.label} · activates immediately after payment
-          </p>
-        </div>
-        <p className="text-lg font-semibold tabular-nums text-foreground">
-          {formatCurrency(selectedPlan.price)}
-        </p>
-      </div>
-
-      <form onSubmit={onSubmit} className="mt-8 space-y-10" noValidate>
-        {/* Contact */}
-        <section>
-          <h2 className="text-sm font-semibold text-foreground">Contact</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="name">Full name</Label>
-              <Input
-                id="name"
-                autoComplete="name"
-                aria-invalid={!!errors.name}
-                {...register("name")}
-              />
-              {errors.name && (
-                <p className="text-xs text-danger">{errors.name.message}</p>
-              )}
+      <div className="mt-10 grid items-start gap-8 lg:grid-cols-[1fr_360px]">
+        {/* Form */}
+        <form
+          onSubmit={onSubmit}
+          className="space-y-8 rounded-xl border border-border bg-surface p-6 shadow-card sm:p-8"
+          noValidate
+        >
+          {/* Contact */}
+          <section>
+            <h2 className="text-[15px] font-semibold text-foreground">
+              Contact
+            </h2>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="name">Full name</Label>
+                <Input
+                  id="name"
+                  autoComplete="name"
+                  aria-invalid={!!errors.name}
+                  {...register("name")}
+                />
+                {errors.name && (
+                  <p className="text-xs text-danger">{errors.name.message}</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  aria-invalid={!!errors.email}
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p className="text-xs text-danger">{errors.email.message}</p>
+                )}
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                aria-invalid={!!errors.email}
-                {...register("email")}
-              />
-              {errors.email && (
-                <p className="text-xs text-danger">{errors.email.message}</p>
-              )}
-            </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Payment */}
-        <section>
-          <h2 className="text-sm font-semibold text-foreground">
-            Payment method
-          </h2>
-          <div
-            role="radiogroup"
-            aria-label="Payment method"
-            className="mt-4 divide-y divide-border border-y border-border"
-          >
-            {PAYMENT_OPTIONS.map((option) => {
-              const selected = paymentMethod === option.value;
-              return (
-                <label
-                  key={option.value}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-3 py-3.5 transition-colors",
-                    !selected && "opacity-70 hover:opacity-100",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    value={option.value}
-                    className="size-4 accent-[rgb(var(--primary))] focus-ring"
-                    {...register("paymentMethod")}
-                  />
-                  <option.icon
+          {/* Payment */}
+          <section>
+            <h2 className="text-[15px] font-semibold text-foreground">
+              Payment method
+            </h2>
+            <div
+              role="radiogroup"
+              aria-label="Payment method"
+              className="mt-4 divide-y divide-border overflow-hidden rounded-lg border border-border"
+            >
+              {PAYMENT_OPTIONS.map((option) => {
+                const selected = paymentMethod === option.value;
+                return (
+                  <label
+                    key={option.value}
                     className={cn(
-                      "size-4",
-                      selected ? "text-primary" : "text-subtle",
+                      "flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-colors duration-150",
+                      selected ? "bg-tint/60" : "hover:bg-background",
                     )}
-                  />
-                  <span className="text-sm text-foreground">{option.label}</span>
-                </label>
-              );
-            })}
-          </div>
+                  >
+                    <input
+                      type="radio"
+                      value={option.value}
+                      className="size-4 accent-[rgb(var(--primary))] focus-ring"
+                      {...register("paymentMethod")}
+                    />
+                    <option.icon
+                      className={cn(
+                        "size-4",
+                        selected ? "text-primary" : "text-subtle",
+                      )}
+                    />
+                    <span className="text-sm text-foreground">
+                      {option.label}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
 
-          {paymentMethod === "card" && (
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="cardNumber">Card number</Label>
-                <Input
-                  id="cardNumber"
-                  inputMode="numeric"
-                  autoComplete="cc-number"
-                  placeholder="4242 4242 4242 4242"
-                  aria-invalid={!!errors.cardNumber}
-                  {...register("cardNumber")}
-                />
-                {errors.cardNumber && (
-                  <p className="text-xs text-danger">
-                    {errors.cardNumber.message}
-                  </p>
-                )}
+            {paymentMethod === "card" && (
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="cardNumber">Card number</Label>
+                  <Input
+                    id="cardNumber"
+                    inputMode="numeric"
+                    autoComplete="cc-number"
+                    placeholder="4242 4242 4242 4242"
+                    aria-invalid={!!errors.cardNumber}
+                    {...register("cardNumber")}
+                  />
+                  {errors.cardNumber && (
+                    <p className="text-xs text-danger">
+                      {errors.cardNumber.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="cardExpiry">Expiry</Label>
+                  <Input
+                    id="cardExpiry"
+                    inputMode="numeric"
+                    autoComplete="cc-exp"
+                    placeholder="MM/YY"
+                    aria-invalid={!!errors.cardExpiry}
+                    {...register("cardExpiry")}
+                  />
+                  {errors.cardExpiry && (
+                    <p className="text-xs text-danger">
+                      {errors.cardExpiry.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="cardCvc">CVC</Label>
+                  <Input
+                    id="cardCvc"
+                    inputMode="numeric"
+                    autoComplete="cc-csc"
+                    placeholder="123"
+                    aria-invalid={!!errors.cardCvc}
+                    {...register("cardCvc")}
+                  />
+                  {errors.cardCvc && (
+                    <p className="text-xs text-danger">{errors.cardCvc.message}</p>
+                  )}
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="cardExpiry">Expiry</Label>
-                <Input
-                  id="cardExpiry"
-                  inputMode="numeric"
-                  autoComplete="cc-exp"
-                  placeholder="MM/YY"
-                  aria-invalid={!!errors.cardExpiry}
-                  {...register("cardExpiry")}
-                />
-                {errors.cardExpiry && (
-                  <p className="text-xs text-danger">
-                    {errors.cardExpiry.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="cardCvc">CVC</Label>
-                <Input
-                  id="cardCvc"
-                  inputMode="numeric"
-                  autoComplete="cc-csc"
-                  placeholder="123"
-                  aria-invalid={!!errors.cardCvc}
-                  {...register("cardCvc")}
-                />
-                {errors.cardCvc && (
-                  <p className="text-xs text-danger">{errors.cardCvc.message}</p>
-                )}
-              </div>
+            )}
+
+            {paymentMethod === "crypto" && (
+              <p className="mt-4 text-[13px] leading-relaxed text-muted">
+                After you confirm, a payment address with the exact amount is
+                shown. Access activates when the transaction is detected.
+                (Mock — completes instantly.)
+              </p>
+            )}
+
+            {paymentMethod === "balance" && (
+              <p className="mt-4 text-[13px] leading-relaxed text-muted">
+                The amount is deducted from your account balance. (Mock —
+                completes instantly.)
+              </p>
+            )}
+          </section>
+
+          {submitError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-lg border border-danger/30 bg-danger/[0.06] px-4 py-3 text-sm text-danger"
+            >
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              {submitError}
             </div>
           )}
 
-          {paymentMethod === "crypto" && (
-            <p className="mt-4 text-[13px] leading-relaxed text-muted">
-              After you confirm, a payment address with the exact amount is
-              shown. Access activates when the transaction is detected. (Mock —
-              completes instantly.)
-            </p>
-          )}
-
-          {paymentMethod === "balance" && (
-            <p className="mt-4 text-[13px] leading-relaxed text-muted">
-              The amount is deducted from your account balance. (Mock —
-              completes instantly.)
-            </p>
-          )}
-        </section>
-
-        {submitError && (
-          <div
-            role="alert"
-            className="flex items-start gap-2.5 rounded-md border border-danger/30 bg-danger/[0.08] px-4 py-3 text-sm text-danger"
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            disabled={isSubmitting}
           >
-            <AlertCircle className="mt-0.5 size-4 shrink-0" />
-            {submitError}
-          </div>
-        )}
-
-        <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted">
-            Total due today{" "}
-            <span className="font-semibold tabular-nums text-foreground">
-              {formatCurrency(selectedPlan.price)}
-            </span>
-          </p>
-          <Button type="submit" size="lg" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
@@ -323,11 +317,46 @@ export function CheckoutPage() {
               <>Activate access — {formatCurrency(selectedPlan.price)}</>
             )}
           </Button>
-        </div>
-        <p className="text-xs text-subtle">
-          Mock checkout — no real payment is processed.
-        </p>
-      </form>
+          <p className="text-xs text-subtle">
+            Mock checkout — no real payment is processed.
+          </p>
+        </form>
+
+        {/* Order summary */}
+        <aside className="rounded-xl border border-border bg-surface p-6 shadow-card lg:sticky lg:top-24">
+          <h2 className="text-[15px] font-semibold text-foreground">
+            Summary
+          </h2>
+          <div className="mt-4 flex items-start justify-between gap-4 border-b border-border pb-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {SERVICE_NAME}
+              </p>
+              <p className="mt-0.5 text-xs text-subtle">
+                {selectedPlan.label} · activates immediately
+              </p>
+            </div>
+            <p className="text-[15px] font-semibold tabular-nums text-foreground">
+              {formatCurrency(selectedPlan.price)}
+            </p>
+          </div>
+          <ul className="mt-4 space-y-2 text-[13px] text-muted">
+            <li>All available regions</li>
+            <li>Up to {DEVICE_LIMIT} devices</li>
+            <li>All supported platforms</li>
+          </ul>
+          <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+            <span className="text-sm text-muted">Total due today</span>
+            <span className="text-lg font-semibold tabular-nums text-foreground">
+              {formatCurrency(selectedPlan.price)}
+            </span>
+          </div>
+          <p className="mt-4 border-t border-border pt-4 text-[13px] leading-relaxed text-muted">
+            After activation, your subscription URL is available immediately in
+            your console.
+          </p>
+        </aside>
+      </div>
     </Container>
   );
 }

@@ -33,7 +33,7 @@ export function TableRow({
   return (
     <tr
       className={cn(
-        "border-b border-border transition-colors duration-150 data-[clickable=true]:cursor-pointer data-[clickable=true]:hover:bg-white/[0.02]",
+        "border-b border-border transition-colors duration-150 data-[clickable=true]:cursor-pointer data-[clickable=true]:hover:bg-foreground/[0.02]",
         className,
       )}
       {...props}

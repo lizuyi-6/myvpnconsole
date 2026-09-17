@@ -57,14 +57,14 @@ export function RegisterPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-5 py-16">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-8 shadow-card">
         <div className="flex flex-col items-center text-center">
           <Logo />
           <h1 className="mt-6 text-xl font-semibold tracking-tight text-foreground">
             Create your account
           </h1>
           <p className="mt-1.5 text-sm text-muted">
-            Purchase, manage and renew in one place.
+            Activate, manage and renew in one place.
           </p>
         </div>
 

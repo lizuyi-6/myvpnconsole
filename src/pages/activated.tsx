@@ -1,7 +1,6 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CircleCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ErrorState } from "@/components/feedback/error-state";
-import { StatusDot } from "@/components/feedback/status-dot";
 import { Container } from "@/components/layout/container";
 import { SubscriptionUrlField } from "@/components/subscription/subscription-url-field";
 import { Button } from "@/components/ui/button";
@@ -36,40 +35,39 @@ export function ActivatedPage() {
         />
       ) : (
         <>
-          <p className="flex items-center gap-2 text-sm text-foreground">
-            <StatusDot tone="success" />
-            Access activated
-          </p>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
-            Your subscription is ready.
+          <div className="flex size-12 items-center justify-center rounded-full bg-tint">
+            <CircleCheck className="size-6 text-primary" />
+          </div>
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground">
+            Access activated.
           </h1>
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-2 text-[15px] text-muted">
             {subscription.name} · {subscription.planLabel} ·{" "}
             {daysUntil(subscription.expiresAt)} days remaining (expires{" "}
             {formatDate(subscription.expiresAt)})
           </p>
 
-          <div className="mt-8">
-            <p className="text-[13px] font-medium text-muted">
+          <div className="mt-8 rounded-xl border border-border bg-surface p-5 shadow-card sm:p-6">
+            <p className="text-sm font-medium text-foreground">
               Your subscription URL
             </p>
             <SubscriptionUrlField
               token={subscription.subscriptionToken}
-              className="mt-2"
+              className="mt-3"
             />
-            <p className="mt-2 text-xs text-subtle">
+            <p className="mt-2.5 text-[13px] text-subtle">
               Paste this into your client to import all regions.
             </p>
           </div>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button asChild>
+            <Button asChild size="lg">
               <Link to="/setup">
                 Open setup guide
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
-            <Button asChild variant="secondary">
+            <Button asChild variant="secondary" size="lg">
               <Link to="/console">Go to console</Link>
             </Button>
           </div>

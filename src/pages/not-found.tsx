@@ -17,7 +17,7 @@ export function NotFoundPage() {
           <Link to="/">Back to home</Link>
         </Button>
         <Button asChild variant="secondary">
-          <Link to="/products">Browse products</Link>
+          <Link to="/plans">View plans</Link>
         </Button>
       </div>
     </Container>

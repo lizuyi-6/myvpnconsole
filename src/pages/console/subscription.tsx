@@ -70,48 +70,48 @@ export function ConsoleSubscriptionPage() {
 
   return (
     <div>
-      <h1 className="text-lg font-semibold text-foreground">Subscription</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">Subscription</h1>
 
       {/* Facts */}
-      <section className="mt-6 border-t border-border py-6">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h2 className="text-xl font-semibold text-foreground">{sub.name}</h2>
-          <span className="flex items-center gap-2 text-sm text-foreground">
-            <StatusDot tone={sub.status === "active" ? "success" : "neutral"} />
-            {sub.status === "active" ? "Active" : "Expired"}
-          </span>
+      <section className="mt-6 rounded-xl border border-border bg-surface p-6 shadow-card sm:p-7">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 className="text-lg font-semibold text-foreground">{sub.name}</h2>
+            <span className="flex items-center gap-2 text-sm text-muted">
+              <StatusDot tone={sub.status === "active" ? "success" : "neutral"} />
+              {sub.status === "active" ? "Active" : "Expired"}
+            </span>
+          </div>
+          <Button asChild size="sm">
+            <Link to="/plans">Renew</Link>
+          </Button>
         </div>
-        <dl className="mt-4 grid max-w-lg grid-cols-2 gap-x-10 gap-y-4 text-sm sm:grid-cols-3">
+        <dl className="mt-5 grid max-w-lg grid-cols-2 gap-x-10 gap-y-4 text-sm sm:grid-cols-3">
           <div>
             <dt className="text-xs text-subtle">Expires</dt>
-            <dd className="mt-0.5 text-foreground">
+            <dd className="mt-1 text-[15px] font-medium text-foreground">
               {formatDate(sub.expiresAt)}
             </dd>
           </div>
           <div>
             <dt className="text-xs text-subtle">Remaining</dt>
-            <dd className="mt-0.5 tabular-nums text-foreground">
+            <dd className="mt-1 text-[15px] font-medium tabular-nums text-foreground">
               {remaining} days
             </dd>
           </div>
           <div>
             <dt className="text-xs text-subtle">Renewal term</dt>
-            <dd className="mt-0.5 text-foreground">{sub.planLabel}</dd>
+            <dd className="mt-1 text-[15px] font-medium text-foreground">{sub.planLabel}</dd>
           </div>
         </dl>
-        <div className="mt-5">
-          <Button asChild variant="secondary" size="sm">
-            <Link to="/plans">Renew</Link>
-          </Button>
-        </div>
       </section>
 
       {/* Subscription URL */}
-      <section className="border-t border-border py-6">
-        <h2 className="text-sm font-semibold text-foreground">
+      <section className="mt-6 rounded-xl border border-border bg-surface p-6 shadow-card sm:p-7">
+        <h2 className="text-[15px] font-semibold text-foreground">
           Subscription URL
         </h2>
-        <SubscriptionUrlField token={activeToken} className="mt-3 max-w-lg" />
+        <SubscriptionUrlField token={activeToken} className="mt-4 max-w-lg" />
 
         {regenerated && (
           <p className="mt-3 flex items-center gap-2 text-[13px] text-success">
@@ -167,12 +167,12 @@ export function ConsoleSubscriptionPage() {
       </section>
 
       {/* Regions */}
-      <section className="border-t border-border py-6">
-        <h2 className="text-sm font-semibold text-foreground">Regions</h2>
+      <section className="mt-6 rounded-xl border border-border bg-surface p-6 shadow-card sm:p-7">
+        <h2 className="text-[15px] font-semibold text-foreground">Regions</h2>
         {regions.loading ? (
-          <Skeleton className="mt-3 h-48 w-full" />
+          <Skeleton className="mt-4 h-48 w-full" />
         ) : regions.error ? (
-          <p className="mt-3 text-sm text-muted">
+          <p className="mt-4 text-sm text-muted">
             Couldn't load regions.{" "}
             <button
               onClick={regions.retry}
@@ -182,7 +182,7 @@ export function ConsoleSubscriptionPage() {
             </button>
           </p>
         ) : (
-          <div className="mt-3 max-w-lg">
+          <div className="mt-4 max-w-lg">
             <Table>
               <TableHeader>
                 <TableRow>

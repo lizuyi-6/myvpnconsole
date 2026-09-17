@@ -13,6 +13,7 @@ import { SiteLayout } from "@/components/layout/site-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HelpPage } from "@/pages/help";
 import { HomePage } from "@/pages/home";
+import { LegalPage } from "@/pages/legal";
 import { LoginPage } from "@/pages/login";
 import { NetworkPage } from "@/pages/network";
 import { NotFoundPage } from "@/pages/not-found";
@@ -112,6 +113,7 @@ export function App() {
           <Route path="plans" element={<PlansPage />} />
           <Route path="setup" element={<SetupPage />} />
           <Route path="help" element={<HelpPage />} />
+          <Route path="legal/:doc" element={<LegalPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
 
