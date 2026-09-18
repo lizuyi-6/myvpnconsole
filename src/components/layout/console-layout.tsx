@@ -10,7 +10,7 @@ import {
   Settings,
   Wrench,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Link,
   NavLink,
@@ -20,6 +20,8 @@ import {
 } from "react-router-dom";
 import { Logo } from "@/components/brand/logo";
 import { StatusDot } from "@/components/feedback/status-dot";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { SkipLink } from "@/components/layout/skip-link";
 import {
   Sheet,
   SheetContent,
@@ -27,27 +29,43 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useAsync } from "@/hooks/use-async";
+import { useMenuA11y } from "@/hooks/use-menu-a11y";
+import { useScrolled } from "@/hooks/use-scrolled";
+import { useI18n, type TranslationKey } from "@/i18n";
 import { cn, initialsOf } from "@/lib/utils";
 import { networkService } from "@/services/network";
 import { useAuthStore } from "@/store/auth";
 
-const NAV_ITEMS = [
-  { to: "/console", label: "Overview", icon: LayoutGrid, end: true },
-  { to: "/console/subscription", label: "Subscription", icon: Radio },
-  { to: "/console/devices", label: "Devices", icon: MonitorSmartphone },
-  { to: "/console/setup", label: "Setup", icon: Wrench },
-  { to: "/console/billing", label: "Billing", icon: CreditCard },
-  { to: "/console/support", label: "Support", icon: LifeBuoy },
+type ConsoleNavKey =
+  | "overview"
+  | "subscription"
+  | "devices"
+  | "setup"
+  | "billing"
+  | "support";
+
+const NAV_ITEMS: {
+  to: string;
+  key: ConsoleNavKey;
+  icon: typeof LayoutGrid;
+  end?: boolean;
+}[] = [
+  { to: "/console", key: "overview", icon: LayoutGrid, end: true },
+  { to: "/console/subscription", key: "subscription", icon: Radio },
+  { to: "/console/devices", key: "devices", icon: MonitorSmartphone },
+  { to: "/console/setup", key: "setup", icon: Wrench },
+  { to: "/console/billing", key: "billing", icon: CreditCard },
+  { to: "/console/support", key: "support", icon: LifeBuoy },
 ];
 
-const PAGE_TITLES: [RegExp, string][] = [
-  [/^\/console$/, "Overview"],
-  [/^\/console\/subscription/, "Subscription"],
-  [/^\/console\/devices/, "Devices"],
-  [/^\/console\/setup/, "Setup"],
-  [/^\/console\/billing/, "Billing"],
-  [/^\/console\/support/, "Support"],
-  [/^\/console\/settings/, "Settings"],
+const PAGE_TITLE_KEYS: [RegExp, TranslationKey][] = [
+  [/^\/console$/, "console.nav.overview"],
+  [/^\/console\/subscription/, "console.nav.subscription"],
+  [/^\/console\/devices/, "console.nav.devices"],
+  [/^\/console\/setup/, "console.nav.setup"],
+  [/^\/console\/billing/, "console.nav.billing"],
+  [/^\/console\/support/, "console.nav.support"],
+  [/^\/console\/settings/, "console.nav.settings"],
 ];
 
 function consoleNavClass(isActive: boolean) {
@@ -62,10 +80,11 @@ function consoleNavClass(isActive: boolean) {
 function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate();
   const { user, signOut } = useAuthStore();
+  const { t } = useI18n();
 
   return (
     <div className="flex h-full flex-col">
-      <nav aria-label="Console" className="flex flex-col gap-0.5 p-3">
+      <nav aria-label={t("console.navAria")} className="flex flex-col gap-0.5 p-3">
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.to}
@@ -75,7 +94,7 @@ function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
             className={({ isActive }) => consoleNavClass(isActive)}
           >
             <item.icon className="size-4 shrink-0" />
-            {item.label}
+            {t(`console.nav.${item.key}`)}
           </NavLink>
         ))}
       </nav>
@@ -87,7 +106,7 @@ function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
           className={({ isActive }) => consoleNavClass(isActive)}
         >
           <Settings className="size-4 shrink-0" />
-          Settings
+          {t("console.nav.settings")}
         </NavLink>
         <button
           type="button"
@@ -98,7 +117,7 @@ function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
           className="flex h-10 w-full items-center gap-2.5 rounded-lg px-3 text-sm text-muted transition-colors duration-150 hover:bg-foreground/[0.04] hover:text-foreground focus-ring"
         >
           <LogOut className="size-4 shrink-0" />
-          Sign out
+          {t("console.signOut")}
         </button>
 
         {user && (
@@ -123,8 +142,13 @@ function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
 function UserMenu() {
   const navigate = useNavigate();
   const { user, signOut } = useAuthStore();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const close = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
     if (!open) return;
@@ -144,11 +168,14 @@ function UserMenu() {
     };
   }, [open]);
 
+  useMenuA11y({ open, onClose: close, containerRef: menuRef, triggerRef });
+
   if (!user) return null;
 
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
@@ -161,11 +188,17 @@ function UserMenu() {
         <span className="hidden max-w-40 truncate text-sm font-medium text-foreground lg:block">
           {user.name}
         </span>
-        <ChevronDown className="size-3.5 text-subtle" />
+        <ChevronDown
+          className={cn(
+            "size-3.5 text-subtle transition-transform duration-200",
+            open && "rotate-180",
+          )}
+        />
       </button>
 
       {open && (
         <div
+          ref={menuRef}
           role="menu"
           className="absolute right-0 top-full z-50 mt-1.5 w-56 animate-content-in rounded-lg border border-border bg-surface p-1.5 shadow-panel"
         >
@@ -182,7 +215,7 @@ function UserMenu() {
             className="mt-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-ring"
           >
             <Settings className="size-4" />
-            Settings
+            {t("console.nav.settings")}
           </Link>
           <button
             type="button"
@@ -194,7 +227,7 @@ function UserMenu() {
             className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-ring"
           >
             <LogOut className="size-4" />
-            Sign out
+            {t("console.signOut")}
           </button>
         </div>
       )}
@@ -202,35 +235,45 @@ function UserMenu() {
   );
 }
 
-/** Desktop topbar — current page, live network status, help, user menu. */
+/** Desktop topbar — current page, language, live network status, user menu. */
 function ConsoleTopbar() {
   const location = useLocation();
   const status = useAsync(() => networkService.getStatus(), []);
-  const title =
-    PAGE_TITLES.find(([pattern]) => pattern.test(location.pathname))?.[1] ??
-    "Console";
+  const scrolled = useScrolled();
+  const { t } = useI18n();
+  const titleKey = PAGE_TITLE_KEYS.find(([pattern]) =>
+    pattern.test(location.pathname),
+  )?.[1];
+  const title = titleKey ? t(titleKey) : t("header.console");
 
   return (
-    <div className="sticky top-0 z-30 hidden h-16 items-center justify-between border-b border-border bg-surface/90 px-8 backdrop-blur-md md:flex lg:px-10">
+    <div
+      className={cn(
+        "sticky top-0 z-30 hidden h-16 items-center justify-between border-b border-border bg-surface/90 px-8 backdrop-blur-md transition-shadow duration-200 md:flex lg:px-10",
+        scrolled && "shadow-[0_12px_28px_-20px_rgb(16_24_40/0.25)]",
+      )}
+    >
       <p className="text-[15px] font-semibold text-foreground">{title}</p>
 
       <div className="flex items-center gap-2">
+        <LanguageSwitcher />
         <Link
           to="/network"
           className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-[13px] text-muted transition-colors hover:text-foreground focus-ring"
         >
           <StatusDot
             tone={status.data?.status === "operational" ? "success" : "warning"}
+            pulse={status.data?.status === "operational"}
           />
           {status.data
             ? status.data.status === "operational"
-              ? "Operational"
-              : "Degraded"
+              ? t("common.statusOperational")
+              : t("common.statusDegraded")
             : "…"}
         </Link>
         <Link
           to="/help"
-          aria-label="Help Center"
+          aria-label={t("console.helpAria")}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-ring"
         >
           <LifeBuoy className="size-[18px]" />
@@ -248,13 +291,20 @@ function ConsoleTopbar() {
  */
 export function ConsoleLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+  const { t } = useI18n();
 
   return (
     <div className="flex min-h-screen bg-background">
+      <SkipLink />
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-surface md:flex">
         <div className="flex h-16 items-center border-b border-border px-5">
-          <Link to="/" aria-label="NOVA home" className="focus-ring rounded-md">
+          <Link
+            to="/"
+            aria-label={t("header.homeAria")}
+            className="focus-ring rounded-md"
+          >
             <Logo />
           </Link>
         </div>
@@ -266,20 +316,26 @@ export function ConsoleLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar with drawer */}
         <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-surface/90 px-5 backdrop-blur-md md:hidden">
-          <Link to="/" aria-label="NOVA home" className="focus-ring rounded-md">
+          <Link
+            to="/"
+            aria-label={t("header.homeAria")}
+            className="focus-ring rounded-md"
+          >
             <Logo />
           </Link>
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
               <button
-                aria-label="Open console menu"
+                aria-label={t("console.openMenu")}
                 className="flex h-9 w-9 items-center justify-center rounded-md text-muted transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-ring"
               >
                 <Menu className="size-5" />
               </button>
             </SheetTrigger>
             <SheetContent aria-describedby={undefined}>
-              <SheetTitle className="sr-only">Console menu</SheetTitle>
+              <SheetTitle className="sr-only">
+                {t("console.menuTitle")}
+              </SheetTitle>
               <div className="border-b border-border p-5">
                 <Logo />
               </div>
@@ -292,8 +348,15 @@ export function ConsoleLayout() {
 
         <ConsoleTopbar />
 
-        <main className="mx-auto w-full max-w-workspace flex-1 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
-          <Outlet />
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-workspace flex-1 px-5 py-8 focus:outline-none sm:px-8 lg:px-10 lg:py-10"
+        >
+          {/* Keyed wrapper re-runs the entrance animation on route change */}
+          <div key={location.pathname} className="animate-page-in">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

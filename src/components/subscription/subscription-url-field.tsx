@@ -1,7 +1,9 @@
 import { Check, Copy, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { useCopy } from "@/hooks/use-copy";
+import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 export function subscriptionUrl(token: string): string {
@@ -23,6 +25,8 @@ export function SubscriptionUrlField({
 }: SubscriptionUrlFieldProps) {
   const [revealed, setRevealed] = useState(false);
   const { copied, copy } = useCopy();
+  const { toast } = useToast();
+  const { t } = useI18n();
   const url = subscriptionUrl(token);
 
   return (
@@ -34,15 +38,19 @@ export function SubscriptionUrlField({
         variant="ghost"
         size="icon"
         onClick={() => setRevealed((v) => !v)}
-        aria-label={revealed ? "Hide subscription URL" : "Show subscription URL"}
+        aria-label={revealed ? t("common.hideUrl") : t("common.showUrl")}
+        aria-pressed={revealed}
       >
         {revealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
       </Button>
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => copy(url)}
-        aria-label="Copy subscription URL"
+        onClick={() => {
+          copy(url);
+          toast(t("common.copied"));
+        }}
+        aria-label={t("common.copyUrl")}
       >
         {copied ? (
           <Check className="size-4 text-success" />

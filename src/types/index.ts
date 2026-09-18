@@ -74,12 +74,6 @@ export interface Device {
 
 export type PaymentMethod = "card" | "crypto" | "balance";
 
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  card: "Credit / Debit Card",
-  crypto: "Crypto",
-  balance: "Balance",
-};
-
 export type PaymentStatus = "completed" | "processing" | "refunded";
 
 export interface Payment {
@@ -107,14 +101,6 @@ export type TicketCategory =
   | "payment"
   | "subscription"
   | "other";
-
-export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
-  account: "Account",
-  connection: "Connection",
-  payment: "Payment",
-  subscription: "Subscription",
-  other: "Other",
-};
 
 export type TicketStatus = "open" | "answered" | "closed";
 

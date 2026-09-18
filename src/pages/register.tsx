@@ -1,41 +1,48 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useI18n, type Dictionary } from "@/i18n";
 import { useAuthStore } from "@/store/auth";
 
-const registerSchema = z
-  .object({
-    name: z.string().min(2, "Enter your name"),
-    email: z.string().email("Enter a valid email address"),
-    password: z.string().min(8, "Use at least 8 characters"),
-    confirmPassword: z.string(),
-  })
-  .refine((values) => values.password === values.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Passwords don't match",
-  });
+function buildRegisterSchema(dict: Dictionary) {
+  const errors = dict.auth.register.errors;
+  return z
+    .object({
+      name: z.string().min(2, errors.nameMin),
+      email: z.string().email(errors.emailInvalid),
+      password: z.string().min(8, errors.passwordMin),
+      confirmPassword: z.string(),
+    })
+    .refine((values) => values.password === values.confirmPassword, {
+      path: ["confirmPassword"],
+      message: errors.mismatch,
+    });
+}
 
-type RegisterForm = z.infer<typeof registerSchema>;
+type RegisterForm = z.infer<ReturnType<typeof buildRegisterSchema>>;
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const registerUser = useAuthStore((s) => s.register);
+  const { t, dict } = useI18n();
   const [serverError, setServerError] = useState<string | null>(null);
+  const schema = useMemo(() => buildRegisterSchema(dict), [dict]);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(schema),
   });
 
   const onSubmit = handleSubmit(async (values) => {
@@ -46,12 +53,8 @@ export function RegisterPage() {
       navigate(next && next.startsWith("/") ? next : "/dashboard", {
         replace: true,
       });
-    } catch (err) {
-      setServerError(
-        err instanceof Error
-          ? err.message
-          : "Could not create your account. Please try again.",
-      );
+    } catch {
+      setServerError(t("auth.register.errors.generic"));
     }
   });
 
@@ -61,10 +64,10 @@ export function RegisterPage() {
         <div className="flex flex-col items-center text-center">
           <Logo />
           <h1 className="mt-6 text-xl font-semibold tracking-tight text-foreground">
-            Create your account
+            {t("auth.register.title")}
           </h1>
           <p className="mt-1.5 text-sm text-muted">
-            Activate, manage and renew in one place.
+            {t("auth.register.subtitle")}
           </p>
         </div>
 
@@ -80,65 +83,76 @@ export function RegisterPage() {
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="name">Full name</Label>
+            <Label htmlFor="name">{t("auth.register.name")}</Label>
             <Input
               id="name"
               autoComplete="name"
               autoFocus
-              placeholder="Alex Chen"
+              placeholder={t("auth.register.namePlaceholder")}
               aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? "register-name-error" : undefined}
               {...register("name")}
             />
-            {errors.name && (
-              <p className="text-xs text-danger">{errors.name.message}</p>
-            )}
+            <FieldError id="register-name-error" message={errors.name?.message} />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("auth.register.email")}</Label>
             <Input
               id="email"
               type="email"
               autoComplete="email"
               placeholder="you@example.com"
               aria-invalid={!!errors.email}
+              aria-describedby={
+                errors.email ? "register-email-error" : undefined
+              }
               {...register("email")}
             />
-            {errors.email && (
-              <p className="text-xs text-danger">{errors.email.message}</p>
-            )}
+            <FieldError
+              id="register-email-error"
+              message={errors.email?.message}
+            />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("auth.register.password")}</Label>
               <Input
                 id="password"
                 type="password"
                 autoComplete="new-password"
-                placeholder="8+ characters"
+                placeholder={t("auth.register.passwordPlaceholder")}
                 aria-invalid={!!errors.password}
+                aria-describedby={
+                  errors.password ? "register-password-error" : undefined
+                }
                 {...register("password")}
               />
-              {errors.password && (
-                <p className="text-xs text-danger">{errors.password.message}</p>
-              )}
+              <FieldError
+                id="register-password-error"
+                message={errors.password?.message}
+              />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="confirmPassword">Confirm</Label>
+              <Label htmlFor="confirmPassword">
+                {t("auth.register.confirm")}
+              </Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 autoComplete="new-password"
-                placeholder="Repeat it"
+                placeholder={t("auth.register.confirmPlaceholder")}
                 aria-invalid={!!errors.confirmPassword}
+                aria-describedby={
+                  errors.confirmPassword ? "register-confirm-error" : undefined
+                }
                 {...register("confirmPassword")}
               />
-              {errors.confirmPassword && (
-                <p className="text-xs text-danger">
-                  {errors.confirmPassword.message}
-                </p>
-              )}
+              <FieldError
+                id="register-confirm-error"
+                message={errors.confirmPassword?.message}
+              />
             </div>
           </div>
 
@@ -146,21 +160,21 @@ export function RegisterPage() {
             {isSubmitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Creating account…
+                {t("auth.register.submitting")}
               </>
             ) : (
-              "Create account"
+              t("auth.register.submit")
             )}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-subtle">
-          Already have an account?{" "}
+          {t("auth.register.footerPre")}{" "}
           <Link
             to="/login"
             className="font-medium text-primary hover:underline focus-ring rounded-sm"
           >
-            Sign in
+            {t("auth.register.footerLink")}
           </Link>
         </p>
       </div>

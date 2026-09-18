@@ -18,6 +18,7 @@ import { SubscriptionUrlField } from "@/components/subscription/subscription-url
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
+import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { deviceService } from "@/services/devices";
 import { networkService } from "@/services/network";
@@ -41,13 +42,14 @@ function PlatformNav({
   platform: DevicePlatform;
   onSelect: (platform: DevicePlatform) => void;
 }) {
+  const { t } = useI18n();
   return (
     <nav
-      aria-label="Platforms"
+      aria-label={t("setup.platformNavAria")}
       className="space-y-1 self-start lg:sticky lg:top-24"
     >
       <p className="px-3 pb-2 text-xs font-medium uppercase tracking-wide text-subtle">
-        Platforms
+        {t("setup.platformNavLabel")}
       </p>
       {PLATFORM_GUIDES.map((guide) => {
         const active = guide.id === platform;
@@ -77,6 +79,7 @@ function PlatformNav({
 /** Right rail — the signed-in user's subscription context. */
 function SubscriptionRail() {
   const user = useAuthStore((s) => s.user);
+  const { t } = useI18n();
   const subscription = useAsync(
     () => (user ? subscriptionService.getCurrent() : Promise.resolve(null)),
     [user?.email],
@@ -89,27 +92,24 @@ function SubscriptionRail() {
 
   return (
     <SideRail>
-      <Panel title="Your subscription">
+      <Panel title={t("setup.subscriptionPanel")}>
         {!user ? (
           <>
             <p className="text-sm leading-relaxed text-muted">
-              Sign in to see your personal subscription URL here while you
-              follow the guide.
+              {t("setup.signedOutBody")}
             </p>
             <Button asChild variant="secondary" size="sm" className="mt-4">
-              <Link to="/login?next=/setup">Sign in</Link>
+              <Link to="/login?next=/setup">{t("setup.signIn")}</Link>
             </Button>
           </>
         ) : subscription.loading ? (
           <Skeleton className="h-[42px] w-full" />
         ) : subscription.data ? (
           <>
-            <SubscriptionUrlField
-              token={subscription.data.subscriptionToken}
-            />
+            <SubscriptionUrlField token={subscription.data.subscriptionToken} />
             <dl className="mt-4 space-y-2.5 border-t border-border pt-4 text-[13px]">
               <div className="flex items-center justify-between">
-                <dt className="text-muted">Devices</dt>
+                <dt className="text-muted">{t("setup.devices")}</dt>
                 <dd className="font-medium tabular-nums text-foreground">
                   {devices.data
                     ? `${devices.data.length} / ${subscription.data.deviceLimit}`
@@ -117,7 +117,7 @@ function SubscriptionRail() {
                 </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-muted">Network</dt>
+                <dt className="text-muted">{t("setup.network")}</dt>
                 <dd className="flex items-center gap-1.5 font-medium text-foreground">
                   <StatusDot
                     tone={
@@ -128,8 +128,8 @@ function SubscriptionRail() {
                   />
                   {status.data
                     ? status.data.status === "operational"
-                      ? "Operational"
-                      : "Degraded"
+                      ? t("common.statusOperational")
+                      : t("common.statusDegraded")
                     : "…"}
                 </dd>
               </div>
@@ -137,25 +137,26 @@ function SubscriptionRail() {
           </>
         ) : (
           <p className="text-sm text-muted">
-            Couldn't load your subscription.{" "}
+            {t("common.couldntLoadSubscription")}{" "}
             <button
               onClick={subscription.retry}
               className="rounded-sm text-primary hover:underline focus-ring"
             >
-              Retry
+              {t("common.retry")}
             </button>
           </p>
         )}
       </Panel>
 
-      <Panel title="Need help?">
+      <Panel title={t("setup.helpPanel")}>
         <p className="flex items-start gap-3 text-sm leading-relaxed text-muted">
           <LifeBuoy className="mt-0.5 size-4 shrink-0 text-subtle" />
-          Setup not working as described? Support can check your subscription
-          and region status.
+          {t("setup.helpBody")}
         </p>
         <div className="mt-4 border-t border-border pt-4">
-          <PanelLink to="/console/support">Contact support</PanelLink>
+          <PanelLink to="/console/support">
+            {t("setup.contactSupport")}
+          </PanelLink>
         </div>
       </Panel>
     </SideRail>
@@ -168,13 +169,14 @@ function SubscriptionRail() {
  */
 export function SetupPage() {
   const [platform, setPlatform] = useState<DevicePlatform>("windows");
+  const { t } = useI18n();
 
   return (
     <Container className="py-12 md:py-16 lg:py-20">
       <PageHeader
         size="lg"
-        title="Set up your device"
-        description="Four steps, a few minutes. No account required to read this guide."
+        title={t("setup.title")}
+        description={t("setup.description")}
       />
 
       <div className="mt-10 grid items-start gap-8 lg:grid-cols-12 lg:gap-10">

@@ -34,6 +34,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAsync } from "@/hooks/use-async";
+import { useI18n, type Dictionary } from "@/i18n";
+import { useToast } from "@/components/ui/toast";
 import { deviceService } from "@/services/devices";
 import { subscriptionService } from "@/services/subscription";
 import type { Device, DevicePlatform } from "@/types";
@@ -54,21 +56,25 @@ const PLATFORM_ICONS: Record<DevicePlatform, typeof Monitor> = {
   linux: Terminal,
 };
 
-function lastActiveLabel(iso: string): string {
+function lastActiveLabel(iso: string, dict: Dictionary): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diffMs / 60_000);
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes} min ago`;
+  const labels = dict.console.devices.lastActive;
+  if (minutes < 1) return labels.justNow;
+  if (minutes < 60)
+    return labels.minAgo.replace("{count}", String(minutes));
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} h ago`;
+  if (hours < 24) return labels.hoursAgo.replace("{count}", String(hours));
   const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  return `${days} days ago`;
+  if (days === 1) return labels.yesterday;
+  return labels.daysAgo.replace("{count}", String(days));
 }
 
 export function ConsoleDevicesPage() {
   const devices = useAsync(() => deviceService.listDevices(), []);
   const subscription = useAsync(() => subscriptionService.getCurrent(), []);
+  const { t, dict } = useI18n();
+  const { toast } = useToast();
 
   const [renaming, setRenaming] = useState<Device | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -85,9 +91,11 @@ export function ConsoleDevicesPage() {
     if (!renaming || !renameValue.trim()) return;
     setRenameSaving(true);
     try {
-      await deviceService.renameDevice(renaming.id, renameValue.trim());
+      const name = renameValue.trim();
+      await deviceService.renameDevice(renaming.id, name);
       setRenaming(null);
       devices.retry();
+      toast(t("console.devices.renamedToast", { name }));
     } finally {
       setRenameSaving(false);
     }
@@ -97,9 +105,11 @@ export function ConsoleDevicesPage() {
     if (!removing) return;
     setRemoveBusy(true);
     try {
+      const { name } = removing;
       await deviceService.removeDevice(removing.id);
       setRemoving(null);
       devices.retry();
+      toast(t("console.devices.removedToast", { name }), "info");
     } finally {
       setRemoveBusy(false);
     }
@@ -108,19 +118,20 @@ export function ConsoleDevicesPage() {
   return (
     <div>
       <PageHeader
-        title="Devices"
-        description="Devices using your subscription. Rename for clarity, remove what you no longer use."
+        title={t("console.devices.title")}
+        description={t("console.devices.description")}
         actions={
           <>
             <span className="rounded-full border border-border bg-surface px-3 py-1.5 text-[13px] tabular-nums text-muted">
-              {devices.data ? devices.data.length : "…"}
-              {" / "}
-              {subscription.data?.deviceLimit ?? "…"} used
+              {t("console.devices.usedCount", {
+                used: devices.data ? devices.data.length : "…",
+                limit: subscription.data?.deviceLimit ?? "…",
+              })}
             </span>
             <Button asChild size="sm">
               <Link to="/console/setup">
                 <Plus className="size-4" />
-                Set up a device
+                {t("console.devices.setupDevice")}
               </Link>
             </Button>
           </>
@@ -132,76 +143,84 @@ export function ConsoleDevicesPage() {
           <Skeleton className="h-40 w-full" />
         ) : devices.error ? (
           <ErrorState
-            message="We couldn't load your devices."
+            message={t("console.devices.loadError")}
             onRetry={devices.retry}
           />
         ) : !devices.data || devices.data.length === 0 ? (
           <EmptyState
             icon={MonitorSmartphone}
-            title="No devices connected"
-            message="Set up a device to see it here."
+            title={t("console.devices.emptyTitle")}
+            message={t("console.devices.emptyBody")}
             action={
               <Button asChild variant="secondary" size="sm">
-                <Link to="/console/setup">Open setup</Link>
+                <Link to="/console/setup">{t("console.devices.openSetup")}</Link>
               </Button>
             }
           />
         ) : (
           <div className="overflow-hidden rounded-xl border border-border bg-surface px-3 shadow-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Device</TableHead>
-                <TableHead className="hidden sm:table-cell">Platform</TableHead>
-                <TableHead>Last active</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {devices.data.map((device) => {
-                const PlatformIcon = PLATFORM_ICONS[device.platform];
-                return (
-                <TableRow key={device.id}>
-                  <TableCell className="font-medium text-foreground">
-                    <span className="flex items-center gap-3">
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-tint">
-                        <PlatformIcon className="size-4 text-primary" />
-                      </span>
-                      {device.name}
-                    </span>
-                  </TableCell>
-                  <TableCell className="hidden text-muted sm:table-cell">
-                    {PLATFORM_LABELS[device.platform]}
-                  </TableCell>
-                  <TableCell className="text-muted">
-                    {lastActiveLabel(device.lastActiveAt)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="inline-flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => openRename(device)}
-                        aria-label={`Rename ${device.name}`}
-                      >
-                        <Pencil className="size-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => setRemoving(device)}
-                        aria-label={`Remove ${device.name}`}
-                        className="hover:text-danger"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("console.devices.colDevice")}</TableHead>
+                  <TableHead className="hidden sm:table-cell">
+                    {t("console.devices.colPlatform")}
+                  </TableHead>
+                  <TableHead>{t("console.devices.colLastActive")}</TableHead>
+                  <TableHead className="text-right">
+                    {t("console.devices.colActions")}
+                  </TableHead>
                 </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {devices.data.map((device) => {
+                  const PlatformIcon = PLATFORM_ICONS[device.platform];
+                  return (
+                    <TableRow key={device.id}>
+                      <TableCell className="font-medium text-foreground">
+                        <span className="flex items-center gap-3">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-tint">
+                            <PlatformIcon className="size-4 text-primary" />
+                          </span>
+                          {device.name}
+                        </span>
+                      </TableCell>
+                      <TableCell className="hidden text-muted sm:table-cell">
+                        {PLATFORM_LABELS[device.platform]}
+                      </TableCell>
+                      <TableCell className="text-muted">
+                        {lastActiveLabel(device.lastActiveAt, dict)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="inline-flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => openRename(device)}
+                            aria-label={t("console.devices.renameAria", {
+                              name: device.name,
+                            })}
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setRemoving(device)}
+                            aria-label={t("console.devices.removeAria", {
+                              name: device.name,
+                            })}
+                            className="hover:text-danger"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
@@ -212,12 +231,14 @@ export function ConsoleDevicesPage() {
         onOpenChange={(open) => !open && setRenaming(null)}
       >
         <DialogContent>
-          <DialogTitle>Rename device</DialogTitle>
+          <DialogTitle>{t("console.devices.renameDialog.title")}</DialogTitle>
           <DialogDescription>
-            Give this device a name you'll recognize.
+            {t("console.devices.renameDialog.body")}
           </DialogDescription>
           <div className="mt-4 space-y-1.5">
-            <Label htmlFor="device-name">Name</Label>
+            <Label htmlFor="device-name">
+              {t("console.devices.renameDialog.nameLabel")}
+            </Label>
             <Input
               id="device-name"
               value={renameValue}
@@ -237,7 +258,7 @@ export function ConsoleDevicesPage() {
               onClick={() => setRenaming(null)}
               disabled={renameSaving}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={submitRename}
@@ -246,10 +267,10 @@ export function ConsoleDevicesPage() {
               {renameSaving ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Saving…
+                  {t("console.devices.renameDialog.saving")}
                 </>
               ) : (
-                "Save"
+                t("console.devices.renameDialog.save")
               )}
             </Button>
           </div>
@@ -262,10 +283,13 @@ export function ConsoleDevicesPage() {
         onOpenChange={(open) => !open && setRemoving(null)}
       >
         <DialogContent>
-          <DialogTitle>Remove {removing?.name}?</DialogTitle>
+          <DialogTitle>
+            {t("console.devices.removeDialog.title", {
+              name: removing?.name ?? "",
+            })}
+          </DialogTitle>
           <DialogDescription>
-            This device will lose access. You can set it up again anytime —
-            this only affects this device.
+            {t("console.devices.removeDialog.body")}
           </DialogDescription>
           <div className="mt-6 flex justify-end gap-2">
             <Button
@@ -273,7 +297,7 @@ export function ConsoleDevicesPage() {
               onClick={() => setRemoving(null)}
               disabled={removeBusy}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -283,10 +307,10 @@ export function ConsoleDevicesPage() {
               {removeBusy ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Removing…
+                  {t("console.devices.removeDialog.removing")}
                 </>
               ) : (
-                "Remove device"
+                t("console.devices.removeDialog.confirm")
               )}
             </Button>
           </div>

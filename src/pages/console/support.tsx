@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LifeBuoy, Loader2, Plus, Wifi, Wrench } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { EmptyState } from "@/components/feedback/empty-state";
@@ -17,52 +17,61 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toast";
 import { useAsync } from "@/hooks/use-async";
-import { formatDate } from "@/lib/utils";
+import { useI18n, type Dictionary } from "@/i18n";
 import { billingService } from "@/services/billing";
 import { networkService } from "@/services/network";
 import { supportService } from "@/services/support";
-import {
-  TICKET_CATEGORY_LABELS,
-  type TicketCategory,
-  type TicketStatus,
-} from "@/types";
+import type { TicketCategory, TicketStatus } from "@/types";
 
-const TICKET_STATUS: Record<
-  TicketStatus,
-  { label: string; tone: "success" | "warning" | "neutral" }
-> = {
-  open: { label: "Open", tone: "warning" },
-  answered: { label: "Answered", tone: "success" },
-  closed: { label: "Closed", tone: "neutral" },
+const TICKET_STATUS_TONE: Record<TicketStatus, "success" | "warning" | "neutral"> = {
+  open: "warning",
+  answered: "success",
+  closed: "neutral",
 };
 
-const ticketSchema = z.object({
-  subject: z.string().min(4, "Give your ticket a short subject"),
-  category: z.enum([
-    "account",
-    "connection",
-    "payment",
-    "subscription",
-    "other",
-  ]),
-  paymentNumber: z.string().optional(),
-  message: z.string().min(20, "Describe the issue in at least 20 characters"),
-});
+const TICKET_CATEGORIES: TicketCategory[] = [
+  "account",
+  "connection",
+  "payment",
+  "subscription",
+  "other",
+];
 
-type TicketForm = z.infer<typeof ticketSchema>;
+function buildTicketSchema(dict: Dictionary) {
+  const errors = dict.console.support.dialog.errors;
+  return z.object({
+    subject: z.string().min(4, errors.subjectMin),
+    category: z.enum([
+      "account",
+      "connection",
+      "payment",
+      "subscription",
+      "other",
+    ]),
+    paymentNumber: z.string().optional(),
+    message: z.string().min(20, errors.messageMin),
+  });
+}
+
+type TicketForm = z.infer<ReturnType<typeof buildTicketSchema>>;
 
 function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
+  const { t, dict } = useI18n();
+  const { toast } = useToast();
   const payments = useAsync(
     () => (open ? billingService.listPayments() : Promise.resolve([])),
     [open],
   );
+  const schema = useMemo(() => buildTicketSchema(dict), [dict]);
 
   const {
     register,
@@ -70,7 +79,7 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<TicketForm>({
-    resolver: zodResolver(ticketSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       subject: "",
       category: "connection",
@@ -88,6 +97,7 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
     reset();
     setOpen(false);
     onCreated();
+    toast(t("console.support.createdToast"));
   });
 
   return (
@@ -95,50 +105,56 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="size-4" />
-          Create ticket
+          {t("console.support.createTicket")}
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogTitle>Create a ticket</DialogTitle>
+        <DialogTitle>{t("console.support.dialog.title")}</DialogTitle>
         <DialogDescription>
-          Describe the issue and we'll get back to you. Your draft stays put
-          if submission fails.
+          {t("console.support.dialog.body")}
         </DialogDescription>
 
         <form onSubmit={onSubmit} className="mt-5 space-y-4" noValidate>
           <div className="space-y-1.5">
-            <Label htmlFor="subject">Subject</Label>
+            <Label htmlFor="subject">
+              {t("console.support.dialog.subject")}
+            </Label>
             <Input
               id="subject"
-              placeholder="e.g. Slow speeds on Japan in the evening"
+              placeholder={t("console.support.dialog.subjectPlaceholder")}
               aria-invalid={!!errors.subject}
+              aria-describedby={
+                errors.subject ? "ticket-subject-error" : undefined
+              }
               {...register("subject")}
             />
-            {errors.subject && (
-              <p className="text-xs text-danger">{errors.subject.message}</p>
-            )}
+            <FieldError
+              id="ticket-subject-error"
+              message={errors.subject?.message}
+            />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">
+                {t("console.support.dialog.category")}
+              </Label>
               <Select id="category" {...register("category")}>
-                {(
-                  Object.entries(TICKET_CATEGORY_LABELS) as [
-                    TicketCategory,
-                    string,
-                  ][]
-                ).map(([value, label]) => (
+                {TICKET_CATEGORIES.map((value) => (
                   <option key={value} value={value}>
-                    {label}
+                    {t(`common.ticketCategory.${value}`)}
                   </option>
                 ))}
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="paymentNumber">Related payment</Label>
+              <Label htmlFor="paymentNumber">
+                {t("console.support.dialog.relatedPayment")}
+              </Label>
               <Select id="paymentNumber" {...register("paymentNumber")}>
-                <option value="">None</option>
+                <option value="">
+                  {t("console.support.dialog.noPayment")}
+                </option>
                 {(payments.data ?? []).map((payment) => (
                   <option key={payment.id} value={payment.number}>
                     {payment.number}
@@ -149,17 +165,23 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="message">Message</Label>
+            <Label htmlFor="message">
+              {t("console.support.dialog.message")}
+            </Label>
             <Textarea
               id="message"
               rows={4}
-              placeholder="What happened, and what did you expect?"
+              placeholder={t("console.support.dialog.messagePlaceholder")}
               aria-invalid={!!errors.message}
+              aria-describedby={
+                errors.message ? "ticket-message-error" : undefined
+              }
               {...register("message")}
             />
-            {errors.message && (
-              <p className="text-xs text-danger">{errors.message.message}</p>
-            )}
+            <FieldError
+              id="ticket-message-error"
+              message={errors.message?.message}
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
@@ -169,16 +191,16 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
               onClick={() => setOpen(false)}
               disabled={isSubmitting}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Submitting…
+                  {t("console.support.dialog.submitting")}
                 </>
               ) : (
-                "Submit ticket"
+                t("console.support.dialog.submit")
               )}
             </Button>
           </div>
@@ -191,19 +213,23 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
 export function ConsoleSupportPage() {
   const tickets = useAsync(() => supportService.listTickets(), []);
   const status = useAsync(() => networkService.getStatus(), []);
+  const { t, formatDate } = useI18n();
 
   return (
     <div>
       <PageHeader
-        title="Support"
-        description="Track existing tickets or open a new one."
+        title={t("console.support.title")}
+        description={t("console.support.description")}
         actions={<CreateTicketDialog onCreated={tickets.retry} />}
       />
 
       <div className="mt-6 grid items-start gap-6 xl:grid-cols-12">
         {/* Tickets */}
         <div className="xl:col-span-7">
-          <Panel title="Your tickets" bodyClassName="px-6 pb-2 pt-0 lg:px-7 lg:pb-2 lg:pt-0">
+          <Panel
+            title={t("console.support.ticketsPanel")}
+            bodyClassName="px-6 pb-2 pt-0 lg:px-7 lg:pb-2 lg:pt-0"
+          >
             {tickets.loading ? (
               <div className="space-y-3 py-4">
                 {[0, 1].map((i) => (
@@ -213,7 +239,7 @@ export function ConsoleSupportPage() {
             ) : tickets.error ? (
               <div className="py-4">
                 <ErrorState
-                  message="We couldn't load your tickets."
+                  message={t("console.support.loadError")}
                   onRetry={tickets.retry}
                 />
               </div>
@@ -221,8 +247,8 @@ export function ConsoleSupportPage() {
               <div className="py-4">
                 <EmptyState
                   icon={LifeBuoy}
-                  title="No tickets"
-                  message="You haven't opened any support tickets yet."
+                  title={t("console.support.emptyTitle")}
+                  message={t("console.support.emptyBody")}
                 />
               </div>
             ) : (
@@ -235,15 +261,17 @@ export function ConsoleSupportPage() {
                           {ticket.subject}
                         </h2>
                         <span className="inline-flex items-center gap-1.5 text-xs text-muted">
-                          <StatusDot tone={TICKET_STATUS[ticket.status].tone} />
-                          {TICKET_STATUS[ticket.status].label}
+                          <StatusDot tone={TICKET_STATUS_TONE[ticket.status]} />
+                          {t(`common.ticketStatus.${ticket.status}`)}
                         </span>
                         <span className="text-xs text-subtle">
-                          {TICKET_CATEGORY_LABELS[ticket.category]}
+                          {t(`common.ticketCategory.${ticket.category}`)}
                         </span>
                       </div>
                       <p className="text-xs text-subtle">
-                        Updated {formatDate(ticket.updatedAt)}
+                        {t("console.support.updatedAt", {
+                          date: formatDate(ticket.updatedAt),
+                        })}
                       </p>
                     </div>
                     <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted">
@@ -251,7 +279,9 @@ export function ConsoleSupportPage() {
                     </p>
                     {ticket.paymentNumber && (
                       <p className="mt-1.5 font-mono text-xs text-subtle">
-                        Payment {ticket.paymentNumber}
+                        {t("console.support.paymentRef", {
+                          number: ticket.paymentNumber,
+                        })}
                       </p>
                     )}
                   </li>
@@ -263,13 +293,13 @@ export function ConsoleSupportPage() {
 
         {/* Before opening a ticket */}
         <SideRail className="xl:col-span-5">
-          <Panel title="Before opening a ticket">
+          <Panel title={t("console.support.beforePanel")}>
             <ul className="space-y-4 text-sm">
               <li className="flex items-start gap-3">
                 <Wifi className="mt-0.5 size-4 shrink-0 text-subtle" />
                 <div>
                   <p className="font-medium text-foreground">
-                    Check network status
+                    {t("console.support.checkStatus")}
                   </p>
                   <p className="mt-0.5 flex items-center gap-2 text-[13px] text-muted">
                     <StatusDot
@@ -278,15 +308,18 @@ export function ConsoleSupportPage() {
                           ? "success"
                           : "warning"
                       }
+                      pulse={status.data?.status === "operational"}
                     />
                     {status.data
                       ? status.data.status === "operational"
-                        ? "All systems operational"
-                        : "Some regions degraded"
+                        ? t("common.allSystemsOperational")
+                        : t("common.someRegionsDegraded")
                       : "…"}
                   </p>
                   <p className="mt-1">
-                    <PanelLink to="/network">Region status</PanelLink>
+                    <PanelLink to="/network">
+                      {t("console.support.regionStatus")}
+                    </PanelLink>
                   </p>
                 </div>
               </li>
@@ -294,14 +327,15 @@ export function ConsoleSupportPage() {
                 <Wrench className="mt-0.5 size-4 shrink-0 text-subtle" />
                 <div>
                   <p className="font-medium text-foreground">
-                    Re-run the setup guide
+                    {t("console.support.rerunSetup")}
                   </p>
                   <p className="mt-0.5 text-[13px] leading-relaxed text-muted">
-                    Re-import your subscription URL — it fixes most client
-                    issues.
+                    {t("console.support.rerunBody")}
                   </p>
                   <p className="mt-1">
-                    <PanelLink to="/console/setup">Open setup</PanelLink>
+                    <PanelLink to="/console/setup">
+                      {t("console.support.openSetup")}
+                    </PanelLink>
                   </p>
                 </div>
               </li>
@@ -309,21 +343,21 @@ export function ConsoleSupportPage() {
                 <LifeBuoy className="mt-0.5 size-4 shrink-0 text-subtle" />
                 <div>
                   <p className="font-medium text-foreground">
-                    Browse common answers
+                    {t("console.support.browseAnswers")}
                   </p>
                   <p className="mt-0.5 text-[13px] leading-relaxed text-muted">
-                    Renewal, device limits and subscription URLs are covered in
-                    the Help Center.
+                    {t("console.support.browseBody")}
                   </p>
                   <p className="mt-1">
-                    <PanelLink to="/help">Help Center</PanelLink>
+                    <PanelLink to="/help">
+                      {t("console.support.helpCenter")}
+                    </PanelLink>
                   </p>
                 </div>
               </li>
             </ul>
             <p className="mt-5 border-t border-border pt-4 text-[13px] leading-relaxed text-muted">
-              Opening a ticket anyway? Include the affected region and the
-              approximate time — it speeds things up.
+              {t("console.support.ticketTip")}
             </p>
           </Panel>
         </SideRail>

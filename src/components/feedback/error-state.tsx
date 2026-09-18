@@ -1,5 +1,6 @@
 import { AlertCircle, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n";
 
 interface ErrorStateProps {
   title?: string;
@@ -10,11 +11,12 @@ interface ErrorStateProps {
 
 /** Section-level error — never locks the whole page. */
 export function ErrorState({
-  title = "Something went wrong",
-  message = "We couldn't load this section. Please try again.",
+  title,
+  message,
   onRetry,
   icon: Icon = AlertCircle,
 }: ErrorStateProps) {
+  const { t } = useI18n();
   return (
     <div
       role="alert"
@@ -24,12 +26,16 @@ export function ErrorState({
         <Icon className="size-5 text-danger" />
       </div>
       <div>
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        <p className="mt-1 text-sm text-muted">{message}</p>
+        <p className="text-sm font-medium text-foreground">
+          {title ?? t("common.errorTitle")}
+        </p>
+        <p className="mt-1 text-sm text-muted">
+          {message ?? t("common.errorMessage")}
+        </p>
       </div>
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry} className="mt-1">
-          Retry
+          {t("common.retry")}
         </Button>
       )}
     </div>

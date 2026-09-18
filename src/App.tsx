@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import {
   BrowserRouter,
   Navigate,
@@ -11,6 +11,8 @@ import { ConsoleLayout } from "@/components/layout/console-layout";
 import { ScrollToTop } from "@/components/layout/scroll-to-top";
 import { SiteLayout } from "@/components/layout/site-layout";
 import { Skeleton } from "@/components/ui/skeleton";
+import { brand } from "@/config/brand";
+import { useI18n, type TranslationKey } from "@/i18n";
 import { HelpPage } from "@/pages/help";
 import { HomePage } from "@/pages/home";
 import { LegalPage } from "@/pages/legal";
@@ -90,10 +92,54 @@ function LegacyDashboardRedirect() {
   );
 }
 
+/* Route → document title. WCAG 2.4.2: every page gets a unique,
+ * localized title ("{page} — NOVA"); home keeps the full site title. */
+const PAGE_TITLE_KEYS: [RegExp, TranslationKey][] = [
+  [/^\/network/, "meta.titles.network"],
+  [/^\/plans/, "meta.titles.plans"],
+  [/^\/setup/, "meta.titles.setup"],
+  [/^\/help/, "meta.titles.help"],
+  [/^\/login/, "meta.titles.login"],
+  [/^\/register/, "meta.titles.register"],
+  [/^\/checkout/, "meta.titles.checkout"],
+  [/^\/access\/activated/, "meta.titles.activated"],
+  [/^\/console$/, "console.nav.overview"],
+  [/^\/console\/subscription/, "console.nav.subscription"],
+  [/^\/console\/devices/, "console.nav.devices"],
+  [/^\/console\/setup/, "console.nav.setup"],
+  [/^\/console\/billing/, "console.nav.billing"],
+  [/^\/console\/support/, "console.nav.support"],
+  [/^\/console\/settings/, "console.nav.settings"],
+];
+
+function PageTitleManager() {
+  const { pathname } = useLocation();
+  const { t, dict } = useI18n();
+
+  useEffect(() => {
+    if (pathname === "/") {
+      document.title = dict.common.siteTitle;
+      return;
+    }
+    const legalMatch = /^\/legal\/([\w-]+)/.exec(pathname);
+    if (legalMatch) {
+      const slug = legalMatch[1] as keyof typeof dict.legal.docs;
+      const doc = slug in dict.legal.docs ? dict.legal.docs[slug] : undefined;
+      document.title = `${doc?.title ?? t("meta.titles.notFound")} — ${brand.name}`;
+      return;
+    }
+    const key = PAGE_TITLE_KEYS.find(([pattern]) => pattern.test(pathname))?.[1];
+    document.title = `${key ? t(key) : t("meta.titles.notFound")} — ${brand.name}`;
+  }, [pathname, t, dict]);
+
+  return null;
+}
+
 export function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <PageTitleManager />
       <Routes>
         {/* Legacy commerce routes → new IA */}
         <Route path="/products" element={<Navigate to="/plans" replace />} />

@@ -35,6 +35,11 @@ export default {
           "system-ui",
           "-apple-system",
           '"Segoe UI"',
+          // CJK fallbacks for the zh locale (system fonts, no webfont cost)
+          '"PingFang SC"',
+          '"Hiragino Sans GB"',
+          '"Microsoft YaHei"',
+          '"Noto Sans CJK SC"',
           "sans-serif",
         ],
       },
@@ -59,6 +64,17 @@ export default {
           from: { transform: "translateX(-100%)" },
           to: { transform: "translateX(0)" },
         },
+        /* Route-change transition — content rises gently into place */
+        "page-in": {
+          from: { opacity: "0", transform: "translateY(6px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        /* "Live" status ring — success dots only, killed by reduced-motion */
+        "status-pulse": {
+          "0%": { boxShadow: "0 0 0 0 rgb(var(--success) / 0.4)" },
+          "70%": { boxShadow: "0 0 0 5px rgb(var(--success) / 0)" },
+          "100%": { boxShadow: "0 0 0 0 rgb(var(--success) / 0)" },
+        },
         "accordion-down": {
           from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
@@ -72,6 +88,8 @@ export default {
         "fade-in": "fade-in 180ms ease-out",
         "content-in": "content-in 200ms ease-out",
         "sheet-in": "sheet-in 220ms ease-out",
+        "page-in": "page-in 240ms ease-out",
+        "status-pulse": "status-pulse 2.4s ease-out infinite",
         "accordion-down": "accordion-down 200ms ease-out",
         "accordion-up": "accordion-up 200ms ease-out",
       },

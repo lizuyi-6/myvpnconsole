@@ -1,67 +1,72 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Bitcoin, CreditCard, Loader2, Wallet } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { ErrorState } from "@/components/feedback/error-state";
 import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
-import { cn, formatCurrency } from "@/lib/utils";
-import { DEVICE_LIMIT, SERVICE_NAME } from "@/mocks/plans";
+import { useI18n, type Dictionary } from "@/i18n";
+import { cn } from "@/lib/utils";
+import { DEVICE_LIMIT } from "@/mocks/plans";
 import { billingService } from "@/services/billing";
 import { planService } from "@/services/plans";
 import { useAuthStore } from "@/store/auth";
 import type { PaymentMethod } from "@/types";
 
-const checkoutSchema = z
-  .object({
-    name: z.string().min(2, "Enter your full name"),
-    email: z.string().email("Enter a valid email address"),
-    paymentMethod: z.enum(["card", "crypto", "balance"]),
-    cardNumber: z.string(),
-    cardExpiry: z.string(),
-    cardCvc: z.string(),
-  })
-  .superRefine((values, ctx) => {
-    if (values.paymentMethod !== "card") return;
-    if (!/^\d{12,19}$/.test(values.cardNumber.replace(/\s/g, ""))) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["cardNumber"],
-        message: "Enter a valid card number",
-      });
-    }
-    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(values.cardExpiry)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["cardExpiry"],
-        message: "Use MM/YY",
-      });
-    }
-    if (!/^\d{3,4}$/.test(values.cardCvc)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["cardCvc"],
-        message: "3–4 digits",
-      });
-    }
-  });
+/** Built per-language so validation messages are localized. */
+function buildCheckoutSchema(dict: Dictionary) {
+  const errors = dict.checkout.errors;
+  return z
+    .object({
+      name: z.string().min(2, errors.nameMin),
+      email: z.string().email(errors.emailInvalid),
+      paymentMethod: z.enum(["card", "crypto", "balance"]),
+      cardNumber: z.string(),
+      cardExpiry: z.string(),
+      cardCvc: z.string(),
+    })
+    .superRefine((values, ctx) => {
+      if (values.paymentMethod !== "card") return;
+      if (!/^\d{12,19}$/.test(values.cardNumber.replace(/\s/g, ""))) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["cardNumber"],
+          message: errors.cardNumber,
+        });
+      }
+      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(values.cardExpiry)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["cardExpiry"],
+          message: errors.cardExpiry,
+        });
+      }
+      if (!/^\d{3,4}$/.test(values.cardCvc)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["cardCvc"],
+          message: errors.cardCvc,
+        });
+      }
+    });
+}
 
-type CheckoutForm = z.infer<typeof checkoutSchema>;
+type CheckoutForm = z.infer<ReturnType<typeof buildCheckoutSchema>>;
 
 const PAYMENT_OPTIONS: {
   value: PaymentMethod;
-  label: string;
   icon: typeof CreditCard;
 }[] = [
-  { value: "card", label: "Credit / Debit Card", icon: CreditCard },
-  { value: "crypto", label: "Crypto", icon: Bitcoin },
-  { value: "balance", label: "Balance", icon: Wallet },
+  { value: "card", icon: CreditCard },
+  { value: "crypto", icon: Bitcoin },
+  { value: "balance", icon: Wallet },
 ];
 
 export function CheckoutPage() {
@@ -69,9 +74,11 @@ export function CheckoutPage() {
   const [searchParams] = useSearchParams();
   const planId = searchParams.get("plan") ?? "30d";
   const user = useAuthStore((s) => s.user);
+  const { t, dict, formatCurrency } = useI18n();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const plan = useAsync(() => planService.getPlan(planId), [planId]);
+  const schema = useMemo(() => buildCheckoutSchema(dict), [dict]);
 
   const {
     register,
@@ -79,7 +86,7 @@ export function CheckoutPage() {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutForm>({
-    resolver: zodResolver(checkoutSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: user?.name ?? "",
       email: user?.email ?? "",
@@ -105,17 +112,18 @@ export function CheckoutPage() {
     return (
       <Container className="max-w-2xl py-14 md:py-20">
         <ErrorState
-          title="This plan isn't available"
-          message="The selected plan could not be found. Pick a duration on the plans page."
+          title={t("checkout.planUnavailableTitle")}
+          message={t("checkout.planUnavailableBody")}
         />
         <Button asChild variant="secondary" className="mt-6">
-          <Link to="/plans">Back to plans</Link>
+          <Link to="/plans">{t("checkout.backToPlans")}</Link>
         </Button>
       </Container>
     );
   }
 
   const selectedPlan = plan.data;
+  const planLabel = t("common.planLabel", { days: selectedPlan.durationDays });
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
@@ -130,18 +138,16 @@ export function CheckoutPage() {
             : undefined,
       });
       navigate("/access/activated");
-    } catch (err) {
+    } catch {
       // Form values are preserved by react-hook-form — nothing resets.
-      setSubmitError(
-        err instanceof Error ? err.message : "Payment failed. Please try again.",
-      );
+      setSubmitError(t("checkout.errors.submitFailed"));
     }
   });
 
   return (
     <Container className="py-12 md:py-16 lg:py-20">
       <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-        Checkout
+        {t("checkout.title")}
       </h1>
 
       <div className="mt-10 grid items-start gap-8 lg:grid-cols-12 lg:gap-10">
@@ -154,33 +160,36 @@ export function CheckoutPage() {
           {/* Contact */}
           <section>
             <h2 className="text-[15px] font-semibold text-foreground">
-              Contact
+              {t("checkout.contact")}
             </h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="name">Full name</Label>
+                <Label htmlFor="name">{t("checkout.fullName")}</Label>
                 <Input
                   id="name"
                   autoComplete="name"
                   aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? "checkout-name-error" : undefined}
                   {...register("name")}
                 />
-                {errors.name && (
-                  <p className="text-xs text-danger">{errors.name.message}</p>
-                )}
+                <FieldError id="checkout-name-error" message={errors.name?.message} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("checkout.email")}</Label>
                 <Input
                   id="email"
                   type="email"
                   autoComplete="email"
                   aria-invalid={!!errors.email}
+                  aria-describedby={
+                    errors.email ? "checkout-email-error" : undefined
+                  }
                   {...register("email")}
                 />
-                {errors.email && (
-                  <p className="text-xs text-danger">{errors.email.message}</p>
-                )}
+                <FieldError
+                  id="checkout-email-error"
+                  message={errors.email?.message}
+                />
               </div>
             </div>
           </section>
@@ -188,11 +197,11 @@ export function CheckoutPage() {
           {/* Payment */}
           <section>
             <h2 className="text-[15px] font-semibold text-foreground">
-              Payment method
+              {t("checkout.paymentMethod")}
             </h2>
             <div
               role="radiogroup"
-              aria-label="Payment method"
+              aria-label={t("checkout.paymentMethodAria")}
               className="mt-4 divide-y divide-border overflow-hidden rounded-lg border border-border"
             >
               {PAYMENT_OPTIONS.map((option) => {
@@ -201,7 +210,7 @@ export function CheckoutPage() {
                   <label
                     key={option.value}
                     className={cn(
-                      "flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-colors duration-150",
+                      "flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-colors duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-inset has-[:focus-visible]:ring-primary/60",
                       selected ? "bg-tint/60" : "hover:bg-background",
                     )}
                   >
@@ -218,7 +227,7 @@ export function CheckoutPage() {
                       )}
                     />
                     <span className="text-sm text-foreground">
-                      {option.label}
+                      {t(`common.paymentMethod.${option.value}`)}
                     </span>
                   </label>
                 );
@@ -228,66 +237,71 @@ export function CheckoutPage() {
             {paymentMethod === "card" && (
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="cardNumber">Card number</Label>
+                  <Label htmlFor="cardNumber">{t("checkout.cardNumber")}</Label>
                   <Input
                     id="cardNumber"
                     inputMode="numeric"
                     autoComplete="cc-number"
                     placeholder="4242 4242 4242 4242"
                     aria-invalid={!!errors.cardNumber}
+                    aria-describedby={
+                      errors.cardNumber ? "checkout-cardnumber-error" : undefined
+                    }
                     {...register("cardNumber")}
                   />
-                  {errors.cardNumber && (
-                    <p className="text-xs text-danger">
-                      {errors.cardNumber.message}
-                    </p>
-                  )}
+                  <FieldError
+                    id="checkout-cardnumber-error"
+                    message={errors.cardNumber?.message}
+                  />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="cardExpiry">Expiry</Label>
+                  <Label htmlFor="cardExpiry">{t("checkout.cardExpiry")}</Label>
                   <Input
                     id="cardExpiry"
                     inputMode="numeric"
                     autoComplete="cc-exp"
                     placeholder="MM/YY"
                     aria-invalid={!!errors.cardExpiry}
+                    aria-describedby={
+                      errors.cardExpiry ? "checkout-cardexpiry-error" : undefined
+                    }
                     {...register("cardExpiry")}
                   />
-                  {errors.cardExpiry && (
-                    <p className="text-xs text-danger">
-                      {errors.cardExpiry.message}
-                    </p>
-                  )}
+                  <FieldError
+                    id="checkout-cardexpiry-error"
+                    message={errors.cardExpiry?.message}
+                  />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="cardCvc">CVC</Label>
+                  <Label htmlFor="cardCvc">{t("checkout.cardCvc")}</Label>
                   <Input
                     id="cardCvc"
                     inputMode="numeric"
                     autoComplete="cc-csc"
                     placeholder="123"
                     aria-invalid={!!errors.cardCvc}
+                    aria-describedby={
+                      errors.cardCvc ? "checkout-cardcvc-error" : undefined
+                    }
                     {...register("cardCvc")}
                   />
-                  {errors.cardCvc && (
-                    <p className="text-xs text-danger">{errors.cardCvc.message}</p>
-                  )}
+                  <FieldError
+                    id="checkout-cardcvc-error"
+                    message={errors.cardCvc?.message}
+                  />
                 </div>
               </div>
             )}
 
             {paymentMethod === "crypto" && (
               <p className="mt-4 text-[13px] leading-relaxed text-muted">
-                After you confirm, a payment address with the exact amount is
-                shown. Access activates when the transaction is detected.
-                (Mock — completes instantly.)
+                {t("checkout.cryptoNote")}
               </p>
             )}
 
             {paymentMethod === "balance" && (
               <p className="mt-4 text-[13px] leading-relaxed text-muted">
-                The amount is deducted from your account balance. (Mock —
-                completes instantly.)
+                {t("checkout.balanceNote")}
               </p>
             )}
           </section>
@@ -311,29 +325,29 @@ export function CheckoutPage() {
             {isSubmitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Activating…
+                {t("checkout.activating")}
               </>
             ) : (
-              <>Activate access — {formatCurrency(selectedPlan.price)}</>
+              t("checkout.activate", {
+                price: formatCurrency(selectedPlan.price),
+              })
             )}
           </Button>
-          <p className="text-xs text-subtle">
-            Mock checkout — no real payment is processed.
-          </p>
+          <p className="text-xs text-subtle">{t("checkout.mockNote")}</p>
         </form>
 
         {/* Order summary */}
         <aside className="rounded-xl border border-border bg-surface p-6 shadow-card sm:p-7 lg:sticky lg:top-24 lg:col-span-5">
           <h2 className="text-[15px] font-semibold text-foreground">
-            Summary
+            {t("checkout.summary")}
           </h2>
           <div className="mt-4 flex items-start justify-between gap-4 border-b border-border pb-4">
             <div>
               <p className="text-sm font-medium text-foreground">
-                {SERVICE_NAME}
+                {t("common.serviceName")}
               </p>
               <p className="mt-0.5 text-xs text-subtle">
-                {selectedPlan.label} · activates immediately
+                {t("checkout.activatesImmediately", { label: planLabel })}
               </p>
             </div>
             <p className="text-[15px] font-semibold tabular-nums text-foreground">
@@ -341,19 +355,18 @@ export function CheckoutPage() {
             </p>
           </div>
           <ul className="mt-4 space-y-2 text-[13px] text-muted">
-            <li>All available regions</li>
-            <li>Up to {DEVICE_LIMIT} devices</li>
-            <li>All supported platforms</li>
+            <li>{t("checkout.includedRegions")}</li>
+            <li>{t("checkout.includedDevices", { count: DEVICE_LIMIT })}</li>
+            <li>{t("checkout.includedPlatforms")}</li>
           </ul>
           <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
-            <span className="text-sm text-muted">Total due today</span>
+            <span className="text-sm text-muted">{t("checkout.totalDue")}</span>
             <span className="text-lg font-semibold tabular-nums text-foreground">
               {formatCurrency(selectedPlan.price)}
             </span>
           </div>
           <p className="mt-4 border-t border-border pt-4 text-[13px] leading-relaxed text-muted">
-            After activation, your subscription URL is available immediately in
-            your console.
+            {t("checkout.afterActivation")}
           </p>
         </aside>
       </div>

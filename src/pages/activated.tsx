@@ -6,7 +6,8 @@ import { SubscriptionUrlField } from "@/components/subscription/subscription-url
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
-import { daysUntil, formatDate } from "@/lib/utils";
+import { displayPlanLabel, useI18n } from "@/i18n";
+import { daysUntil } from "@/lib/utils";
 import { subscriptionService } from "@/services/subscription";
 
 /**
@@ -18,6 +19,7 @@ export function ActivatedPage() {
     () => subscriptionService.getCurrent(),
     [],
   );
+  const { t, dict, formatDate } = useI18n();
 
   return (
     <Container className="max-w-xl py-16 md:py-24">
@@ -29,8 +31,8 @@ export function ActivatedPage() {
         </div>
       ) : error || !subscription ? (
         <ErrorState
-          title="Access activated"
-          message="Your subscription is ready, but we couldn't load it here. Open your console to find your subscription URL."
+          title={t("activated.errorTitle")}
+          message={t("activated.errorBody")}
           onRetry={retry}
         />
       ) : (
@@ -39,36 +41,39 @@ export function ActivatedPage() {
             <CircleCheck className="size-6 text-primary" />
           </div>
           <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground">
-            Access activated.
+            {t("activated.title")}
           </h1>
           <p className="mt-2 text-[15px] text-muted">
-            {subscription.name} · {subscription.planLabel} ·{" "}
-            {daysUntil(subscription.expiresAt)} days remaining (expires{" "}
-            {formatDate(subscription.expiresAt)})
+            {t("activated.summary", {
+              name: t("common.serviceName"),
+              plan: displayPlanLabel(subscription.planLabel, dict),
+              days: daysUntil(subscription.expiresAt),
+              date: formatDate(subscription.expiresAt),
+            })}
           </p>
 
           <div className="mt-8 rounded-xl border border-border bg-surface p-5 shadow-card sm:p-6">
             <p className="text-sm font-medium text-foreground">
-              Your subscription URL
+              {t("activated.urlPanel")}
             </p>
             <SubscriptionUrlField
               token={subscription.subscriptionToken}
               className="mt-3"
             />
             <p className="mt-2.5 text-[13px] text-subtle">
-              Paste this into your client to import all regions.
+              {t("activated.urlHint")}
             </p>
           </div>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg">
               <Link to="/setup">
-                Open setup guide
+                {t("activated.openSetup")}
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
             <Button asChild variant="secondary" size="lg">
-              <Link to="/console">Go to console</Link>
+              <Link to="/console">{t("activated.goConsole")}</Link>
             </Button>
           </div>
         </>

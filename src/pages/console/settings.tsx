@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useI18n } from "@/i18n";
 import { initialsOf } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 
 export function ConsoleSettingsPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuthStore();
+  const { t } = useI18n();
   const [name, setName] = useState(user?.name ?? "");
   const [saved, setSaved] = useState(false);
   const [expiryReminders, setExpiryReminders] = useState(true);
@@ -22,16 +24,18 @@ export function ConsoleSettingsPage() {
   return (
     <div>
       <PageHeader
-        title="Settings"
-        description="Your profile and notification preferences."
+        title={t("console.settings.title")}
+        description={t("console.settings.description")}
       />
 
       <div className="mt-6 grid items-start gap-6 xl:grid-cols-12">
         <div className="space-y-6 xl:col-span-8">
-          <Panel title="Profile">
+          <Panel title={t("console.settings.profilePanel")}>
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="settings-name">Full name</Label>
+                <Label htmlFor="settings-name">
+                  {t("console.settings.fullName")}
+                </Label>
                 <Input
                   id="settings-name"
                   value={name}
@@ -42,10 +46,12 @@ export function ConsoleSettingsPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="settings-email">Email</Label>
+                <Label htmlFor="settings-email">
+                  {t("console.settings.email")}
+                </Label>
                 <Input id="settings-email" value={user?.email ?? ""} disabled />
                 <p className="text-xs text-subtle">
-                  Email changes are handled by support for account security.
+                  {t("console.settings.emailNote")}
                 </p>
               </div>
             </div>
@@ -55,42 +61,46 @@ export function ConsoleSettingsPage() {
                 onClick={() => setSaved(true)}
                 disabled={!name.trim()}
               >
-                Save changes
+                {t("console.settings.saveChanges")}
               </Button>
               {saved && (
                 <span role="status" className="text-[13px] text-success">
-                  Saved.
+                  {t("console.settings.saved")}
                 </span>
               )}
             </div>
           </Panel>
 
-          <Panel title="Notifications">
+          <Panel title={t("console.settings.notificationsPanel")}>
             <div className="divide-y divide-border/60">
               <div className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
                 <div>
-                  <p className="text-sm text-foreground">Expiry reminders</p>
+                  <p className="text-sm text-foreground">
+                    {t("console.settings.expiryReminders")}
+                  </p>
                   <p className="mt-0.5 text-xs text-subtle">
-                    Email 3 days before your subscription expires.
+                    {t("console.settings.expiryRemindersBody")}
                   </p>
                 </div>
                 <Switch
                   checked={expiryReminders}
                   onCheckedChange={setExpiryReminders}
-                  aria-label="Toggle expiry reminder emails"
+                  aria-label={t("console.settings.expiryAria")}
                 />
               </div>
               <div className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
                 <div>
-                  <p className="text-sm text-foreground">Network status alerts</p>
+                  <p className="text-sm text-foreground">
+                    {t("console.settings.statusAlerts")}
+                  </p>
                   <p className="mt-0.5 text-xs text-subtle">
-                    Email when a region you use is degraded or restored.
+                    {t("console.settings.statusAlertsBody")}
                   </p>
                 </div>
                 <Switch
                   checked={statusAlerts}
                   onCheckedChange={setStatusAlerts}
-                  aria-label="Toggle network status alerts"
+                  aria-label={t("console.settings.statusAria")}
                 />
               </div>
             </div>
@@ -98,7 +108,7 @@ export function ConsoleSettingsPage() {
         </div>
 
         <SideRail className="xl:col-span-4">
-          <Panel title="Account">
+          <Panel title={t("console.settings.accountPanel")}>
             {user && (
               <div className="flex items-center gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-tint text-sm font-semibold text-primary">
@@ -124,7 +134,7 @@ export function ConsoleSettingsPage() {
               }}
             >
               <LogOut className="size-4" />
-              Sign out
+              {t("console.signOut")}
             </Button>
           </Panel>
         </SideRail>

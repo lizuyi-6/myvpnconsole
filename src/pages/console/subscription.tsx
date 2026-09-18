@@ -24,7 +24,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAsync } from "@/hooks/use-async";
-import { daysUntil, formatDate } from "@/lib/utils";
+import { displayPlanLabel, useI18n } from "@/i18n";
+import { daysUntil } from "@/lib/utils";
 import { networkService } from "@/services/network";
 import { subscriptionService } from "@/services/subscription";
 
@@ -32,6 +33,7 @@ export function ConsoleSubscriptionPage() {
   const subscription = useAsync(() => subscriptionService.getCurrent(), []);
   const regions = useAsync(() => networkService.listRegions(), []);
   const status = useAsync(() => networkService.getStatus(), []);
+  const { t, dict, formatDate } = useI18n();
 
   const [token, setToken] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -50,7 +52,7 @@ export function ConsoleSubscriptionPage() {
   if (subscription.error || !subscription.data) {
     return (
       <ErrorState
-        message="We couldn't load your subscription."
+        message={t("console.subscription.loadError")}
         onRetry={subscription.retry}
       />
     );
@@ -75,10 +77,10 @@ export function ConsoleSubscriptionPage() {
   return (
     <div>
       <PageHeader
-        title="Subscription"
+        title={t("console.subscription.title")}
         actions={
           <Button asChild size="sm">
-            <Link to="/plans">Renew</Link>
+            <Link to="/plans">{t("console.renew")}</Link>
           </Button>
         }
       />
@@ -90,34 +92,44 @@ export function ConsoleSubscriptionPage() {
           <Panel>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <h2 className="text-lg font-semibold text-foreground">
-                {sub.name}
+                {t("common.serviceName")}
               </h2>
               <span className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-[13px] text-muted">
                 <StatusDot tone={sub.status === "active" ? "success" : "neutral"} />
-                {sub.status === "active" ? "Active" : "Expired"}
+                {sub.status === "active"
+                  ? t("common.statusActive")
+                  : t("common.statusExpired")}
               </span>
             </div>
             <dl className="mt-6 grid grid-cols-2 gap-x-10 gap-y-5 text-sm sm:grid-cols-4">
               <div>
-                <dt className="text-xs text-subtle">Expires</dt>
+                <dt className="text-xs text-subtle">
+                  {t("console.subscription.expires")}
+                </dt>
                 <dd className="mt-1 text-[15px] font-medium text-foreground">
                   {formatDate(sub.expiresAt)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-subtle">Remaining</dt>
+                <dt className="text-xs text-subtle">
+                  {t("console.subscription.remaining")}
+                </dt>
                 <dd className="mt-1 text-[15px] font-medium tabular-nums text-foreground">
-                  {remaining} days
+                  {t("common.days", { count: remaining })}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-subtle">Renewal term</dt>
+                <dt className="text-xs text-subtle">
+                  {t("console.subscription.renewalTerm")}
+                </dt>
                 <dd className="mt-1 text-[15px] font-medium text-foreground">
-                  {sub.planLabel}
+                  {displayPlanLabel(sub.planLabel, dict)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-subtle">Device limit</dt>
+                <dt className="text-xs text-subtle">
+                  {t("console.subscription.deviceLimit")}
+                </dt>
                 <dd className="mt-1 text-[15px] font-medium tabular-nums text-foreground">
                   {sub.deviceLimit}
                 </dd>
@@ -126,60 +138,69 @@ export function ConsoleSubscriptionPage() {
           </Panel>
 
           {/* Subscription URL */}
-          <Panel title="Subscription URL">
+          <Panel title={t("console.subscription.urlPanel")}>
             <SubscriptionUrlField token={activeToken} />
 
             {regenerated && (
               <p className="mt-3 flex items-center gap-2 text-[13px] text-success">
                 <StatusDot tone="success" />
-                New link generated. Update any client using the previous URL.
+                {t("console.subscription.regeneratedNote")}
               </p>
             )}
 
             <p className="mt-4 border-t border-border pt-4 text-[13px] leading-relaxed text-muted">
-              This URL is personal to your account. It stays the same across
-              renewals; regenerate it from the security panel if it leaks.
+              {t("console.subscription.urlBody")}
             </p>
           </Panel>
 
           {/* Regions */}
           <Panel
-            title="Regions"
-            action={<PanelLink to="/network">Full status</PanelLink>}
+            title={t("console.subscription.regionsPanel")}
+            action={
+              <PanelLink to="/network">
+                {t("console.subscription.fullStatus")}
+              </PanelLink>
+            }
             bodyClassName="pt-0 lg:pt-0"
           >
             {regions.loading ? (
               <Skeleton className="mt-4 h-48 w-full" />
             ) : regions.error ? (
               <p className="mt-4 text-sm text-muted">
-                Couldn't load regions.{" "}
+                {t("console.subscription.couldntLoadRegions")}{" "}
                 <button
                   onClick={regions.retry}
                   className="rounded-sm text-primary hover:underline focus-ring"
                 >
-                  Retry
+                  {t("common.retry")}
                 </button>
               </p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Region</TableHead>
-                    <TableHead className="hidden sm:table-cell">Area</TableHead>
-                    <TableHead className="hidden text-right md:table-cell">
-                      Latency
+                    <TableHead>{t("console.subscription.colRegion")}</TableHead>
+                    <TableHead className="hidden sm:table-cell">
+                      {t("console.subscription.colArea")}
                     </TableHead>
-                    <TableHead className="text-right">Status</TableHead>
+                    <TableHead className="hidden text-right md:table-cell">
+                      {t("console.subscription.colLatency")}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {t("console.subscription.colStatus")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {regions.data?.map((region) => (
                     <TableRow key={region.id}>
                       <TableCell className="font-medium text-foreground">
-                        {region.name}
+                        {dict.common.regionNames[
+                          region.id as keyof typeof dict.common.regionNames
+                        ] ?? region.name}
                       </TableCell>
                       <TableCell className="hidden text-muted sm:table-cell">
-                        {region.area}
+                        {t(`common.areas.${region.area}`)}
                       </TableCell>
                       <TableCell className="hidden text-right tabular-nums text-muted md:table-cell">
                         {region.latencyMs !== null
@@ -197,11 +218,7 @@ export function ConsoleSubscriptionPage() {
                                   : "danger"
                             }
                           />
-                          {region.status === "available"
-                            ? "Available"
-                            : region.status === "degraded"
-                              ? "Degraded"
-                              : "Offline"}
+                          {t(`common.regionStatus.${region.status}`)}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -214,11 +231,10 @@ export function ConsoleSubscriptionPage() {
 
         {/* Context rail */}
         <SideRail className="xl:col-span-4">
-          <Panel title="Security">
+          <Panel title={t("console.subscription.securityPanel")}>
             <p className="flex items-start gap-3 text-sm leading-relaxed text-muted">
               <ShieldCheck className="mt-0.5 size-4 shrink-0 text-subtle" />
-              Regenerating your URL invalidates the old link immediately.
-              Clients using it lose access until you import the new one.
+              {t("console.subscription.securityBody")}
             </p>
             <Button
               variant="outline"
@@ -227,21 +243,22 @@ export function ConsoleSubscriptionPage() {
               onClick={() => setConfirmOpen(true)}
             >
               <RefreshCw className="size-3.5" />
-              Regenerate subscription URL
+              {t("console.subscription.regenerate")}
             </Button>
           </Panel>
 
-          <Panel title="Quick setup">
+          <Panel title={t("console.subscription.quickSetup")}>
             <p className="text-sm leading-relaxed text-muted">
-              Connect a new device with your subscription URL — guides for
-              every platform.
+              {t("console.subscription.quickSetupBody")}
             </p>
             <div className="mt-4 border-t border-border pt-4">
-              <PanelLink to="/console/setup">Open setup guide</PanelLink>
+              <PanelLink to="/console/setup">
+                {t("console.subscription.openGuide")}
+              </PanelLink>
             </div>
           </Panel>
 
-          <Panel title="Network status">
+          <Panel title={t("console.subscription.statusPanel")}>
             {status.loading ? (
               <Skeleton className="h-5 w-40" />
             ) : (
@@ -250,14 +267,17 @@ export function ConsoleSubscriptionPage() {
                   tone={
                     status.data?.status === "operational" ? "success" : "warning"
                   }
+                  pulse={status.data?.status === "operational"}
                 />
                 {status.data?.status === "operational"
-                  ? "All systems operational"
-                  : "Some regions degraded"}
+                  ? t("common.allSystemsOperational")
+                  : t("common.someRegionsDegraded")}
               </p>
             )}
             <div className="mt-4 border-t border-border pt-4">
-              <PanelLink to="/network">View network</PanelLink>
+              <PanelLink to="/network">
+                {t("console.subscription.viewNetwork")}
+              </PanelLink>
             </div>
           </Panel>
         </SideRail>
@@ -265,11 +285,9 @@ export function ConsoleSubscriptionPage() {
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
-          <DialogTitle>Regenerate subscription URL?</DialogTitle>
+          <DialogTitle>{t("console.subscription.dialog.title")}</DialogTitle>
           <DialogDescription>
-            Existing subscription configurations will stop updating after
-            regeneration. Clients using the old URL lose access until you
-            import the new one.
+            {t("console.subscription.dialog.body")}
           </DialogDescription>
           <div className="mt-6 flex justify-end gap-2">
             <Button
@@ -277,7 +295,7 @@ export function ConsoleSubscriptionPage() {
               onClick={() => setConfirmOpen(false)}
               disabled={regenerating}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -287,10 +305,10 @@ export function ConsoleSubscriptionPage() {
               {regenerating ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Regenerating…
+                  {t("console.subscription.dialog.confirming")}
                 </>
               ) : (
-                "Regenerate"
+                t("console.subscription.dialog.confirm")
               )}
             </Button>
           </div>

@@ -7,6 +7,7 @@ import { SetupGuide } from "@/components/setup/setup-guide";
 import { SubscriptionUrlField } from "@/components/subscription/subscription-url-field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
+import { useI18n } from "@/i18n";
 import { deviceService } from "@/services/devices";
 import { networkService } from "@/services/network";
 import { subscriptionService } from "@/services/subscription";
@@ -14,6 +15,7 @@ import { subscriptionService } from "@/services/subscription";
 export function ConsoleSetupPage() {
   const [searchParams] = useSearchParams();
   const platform = searchParams.get("platform");
+  const { t } = useI18n();
 
   const subscription = useAsync(() => subscriptionService.getCurrent(), []);
   const devices = useAsync(() => deviceService.listDevices(), []);
@@ -22,8 +24,8 @@ export function ConsoleSetupPage() {
   return (
     <div>
       <PageHeader
-        title="Setup"
-        description="Get a new device connected in a few minutes."
+        title={t("console.setup.title")}
+        description={t("console.setup.description")}
       />
 
       <div className="mt-6 grid items-start gap-6 xl:grid-cols-12">
@@ -34,8 +36,12 @@ export function ConsoleSetupPage() {
 
         <SideRail className="xl:col-span-4">
           <Panel
-            title="Your subscription"
-            action={<PanelLink to="/console/subscription">Manage</PanelLink>}
+            title={t("console.setup.subscriptionPanel")}
+            action={
+              <PanelLink to="/console/subscription">
+                {t("console.setup.manage")}
+              </PanelLink>
+            }
           >
             {subscription.loading ? (
               <Skeleton className="h-[42px] w-full" />
@@ -46,7 +52,7 @@ export function ConsoleSetupPage() {
                 />
                 <dl className="mt-4 space-y-2.5 border-t border-border pt-4 text-[13px]">
                   <div className="flex items-center justify-between">
-                    <dt className="text-muted">Devices</dt>
+                    <dt className="text-muted">{t("console.setup.devices")}</dt>
                     <dd className="font-medium tabular-nums text-foreground">
                       {devices.data
                         ? `${devices.data.length} / ${subscription.data.deviceLimit}`
@@ -54,7 +60,7 @@ export function ConsoleSetupPage() {
                     </dd>
                   </div>
                   <div className="flex items-center justify-between">
-                    <dt className="text-muted">Network</dt>
+                    <dt className="text-muted">{t("console.setup.network")}</dt>
                     <dd className="flex items-center gap-1.5 font-medium text-foreground">
                       <StatusDot
                         tone={
@@ -65,8 +71,8 @@ export function ConsoleSetupPage() {
                       />
                       {status.data
                         ? status.data.status === "operational"
-                          ? "Operational"
-                          : "Degraded"
+                          ? t("common.statusOperational")
+                          : t("common.statusDegraded")
                         : "…"}
                     </dd>
                   </div>
@@ -74,12 +80,12 @@ export function ConsoleSetupPage() {
               </>
             ) : (
               <p className="text-sm text-muted">
-                Couldn't load your subscription.{" "}
+                {t("common.couldntLoadSubscription")}{" "}
                 <button
                   onClick={subscription.retry}
                   className="rounded-sm text-primary hover:underline focus-ring"
                 >
-                  Retry
+                  {t("common.retry")}
                 </button>
               </p>
             )}

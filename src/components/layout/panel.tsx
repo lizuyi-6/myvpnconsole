@@ -58,10 +58,10 @@ export function PanelLink({
   return (
     <Link
       to={to}
-      className="inline-flex items-center gap-1 rounded-sm text-[13px] font-medium text-primary transition-colors hover:underline focus-ring"
+      className="group inline-flex items-center gap-1 rounded-sm text-[13px] font-medium text-primary transition-colors hover:underline focus-ring"
     >
       {children}
-      <ArrowRight className="size-3.5" />
+      <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
     </Link>
   );
 }

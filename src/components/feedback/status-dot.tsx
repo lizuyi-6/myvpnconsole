@@ -12,12 +12,16 @@ const TONE_CLASSES: Record<StatusTone, string> = {
 
 /**
  * Minimal status indicator — a small dot, no pill, no badge.
+ * `pulse` adds a slow "live" ring (aggregate network status only —
+ * too noisy for per-row dots). Reduced-motion disables the animation.
  */
 export function StatusDot({
   tone,
+  pulse = false,
   className,
 }: {
   tone: StatusTone;
+  pulse?: boolean;
   className?: string;
 }) {
   return (
@@ -26,6 +30,7 @@ export function StatusDot({
       className={cn(
         "inline-block size-1.5 shrink-0 rounded-full",
         TONE_CLASSES[tone],
+        pulse && tone === "success" && "animate-status-pulse",
         className,
       )}
     />

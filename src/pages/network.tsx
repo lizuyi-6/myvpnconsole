@@ -8,14 +8,9 @@ import { Panel, PanelLink } from "@/components/layout/panel";
 import { SideRail } from "@/components/layout/side-rail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
+import { useI18n } from "@/i18n";
 import { networkService } from "@/services/network";
 import type { Region, RegionArea, RegionStatus } from "@/types";
-
-const STATUS_LABEL: Record<RegionStatus, string> = {
-  available: "Available",
-  degraded: "Degraded",
-  offline: "Offline",
-};
 
 const STATUS_TONE: Record<RegionStatus, "success" | "warning" | "danger"> = {
   available: "success",
@@ -39,8 +34,9 @@ function groupByArea(regions: Region[]) {
 
 function StatusRailPanel() {
   const status = useAsync(() => networkService.getStatus(), []);
+  const { t } = useI18n();
   return (
-    <Panel title="Network status">
+    <Panel title={t("network.statusPanel")}>
       {status.loading ? (
         <Skeleton className="h-5 w-44" />
       ) : (
@@ -48,14 +44,15 @@ function StatusRailPanel() {
           <p className="flex items-center gap-2.5 text-[15px] font-medium text-foreground">
             <StatusDot
               tone={status.data?.status === "operational" ? "success" : "warning"}
+              pulse={status.data?.status === "operational"}
             />
             {status.data?.status === "operational"
-              ? "All systems operational"
-              : "Some regions degraded"}
+              ? t("common.allSystemsOperational")
+              : t("common.someRegionsDegraded")}
           </p>
           <dl className="mt-5 space-y-3 text-sm">
             <div className="flex items-center justify-between">
-              <dt className="text-muted">Available regions</dt>
+              <dt className="text-muted">{t("network.availableRegions")}</dt>
               <dd className="font-medium tabular-nums text-foreground">
                 {status.data
                   ? `${status.data.activeRegions} / ${status.data.totalRegions}`
@@ -63,8 +60,10 @@ function StatusRailPanel() {
               </dd>
             </div>
             <div className="flex items-center justify-between">
-              <dt className="text-muted">Coverage</dt>
-              <dd className="text-foreground">{AREA_ORDER.length} areas</dd>
+              <dt className="text-muted">{t("network.coverage")}</dt>
+              <dd className="text-foreground">
+                {t("network.coverageValue", { count: AREA_ORDER.length })}
+              </dd>
             </div>
           </dl>
         </>
@@ -75,14 +74,19 @@ function StatusRailPanel() {
 
 export function NetworkPage() {
   const regions = useAsync(() => networkService.listRegions(), []);
+  const { t, dict } = useI18n();
   const groups = groupByArea(regions.data ?? []);
+
+  const regionName = (region: Region) =>
+    dict.common.regionNames[region.id as keyof typeof dict.common.regionNames] ??
+    region.name;
 
   return (
     <Container className="py-12 md:py-16 lg:py-20">
       <PageHeader
         size="lg"
-        title="Network"
-        description="Region availability and current service status — always public, updated continuously."
+        title={t("network.title")}
+        description={t("network.description")}
       />
 
       <div className="mt-10 grid items-start gap-8 lg:grid-cols-12 lg:gap-10">
@@ -92,24 +96,28 @@ export function NetworkPage() {
             <Skeleton className="h-[480px] w-full" />
           ) : regions.error ? (
             <ErrorState
-              message="We couldn't load region information."
+              message={t("network.loadError")}
               onRetry={regions.retry}
             />
           ) : (
             <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-card">
               <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 border-b border-border bg-background/60 px-6 py-3 text-xs font-medium uppercase tracking-wide text-subtle sm:grid-cols-[1.2fr_1fr_120px_90px] lg:px-7">
-                <span>Region</span>
-                <span className="hidden sm:block">Area</span>
-                <span>Status</span>
-                <span className="text-right">Latency</span>
+                <span>{t("network.colRegion")}</span>
+                <span className="hidden sm:block">{t("network.colArea")}</span>
+                <span>{t("network.colStatus")}</span>
+                <span className="text-right">{t("network.colLatency")}</span>
               </div>
               {groups.map((group) => (
                 <div key={group.area}>
                   <p className="flex items-center justify-between border-b border-border/70 bg-background/40 px-6 py-2.5 text-xs font-medium uppercase tracking-wide text-subtle lg:px-7">
-                    {group.area}
+                    {t(`common.areas.${group.area}`)}
                     <span className="tabular-nums normal-case tracking-normal">
-                      {group.regions.length}{" "}
-                      {group.regions.length === 1 ? "region" : "regions"}
+                      {t(
+                        group.regions.length === 1
+                          ? "common.regionsOne"
+                          : "common.regionsMany",
+                        { count: group.regions.length },
+                      )}
                     </span>
                   </p>
                   <ul className="divide-y divide-border/70">
@@ -119,14 +127,14 @@ export function NetworkPage() {
                         className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-6 py-4 text-sm sm:grid-cols-[1.2fr_1fr_120px_90px] lg:px-7"
                       >
                         <span className="font-medium text-foreground">
-                          {region.name}
+                          {regionName(region)}
                         </span>
                         <span className="hidden text-muted sm:block">
-                          {region.area}
+                          {t(`common.areas.${region.area}`)}
                         </span>
                         <span className="inline-flex items-center gap-2 text-muted">
                           <StatusDot tone={STATUS_TONE[region.status]} />
-                          {STATUS_LABEL[region.status]}
+                          {t(`common.regionStatus.${region.status}`)}
                         </span>
                         <span className="text-right tabular-nums text-muted">
                           {region.latencyMs !== null
@@ -140,17 +148,14 @@ export function NetworkPage() {
               ))}
             </div>
           )}
-          <p className="mt-3 text-xs text-subtle">
-            Latency is indicative from our monitoring point and varies with
-            your own connection.
-          </p>
+          <p className="mt-3 text-xs text-subtle">{t("network.latencyNote")}</p>
         </div>
 
         {/* Context rail */}
         <SideRail className="order-1 lg:order-2 lg:col-span-4">
           <StatusRailPanel />
 
-          <Panel title="Area coverage">
+          <Panel title={t("network.areaPanel")}>
             {regions.loading ? (
               <Skeleton className="h-28 w-full" />
             ) : (
@@ -174,7 +179,7 @@ export function NetworkPage() {
                                 : "warning"
                           }
                         />
-                        {group.area}
+                        {t(`common.areas.${group.area}`)}
                       </span>
                       <span className="tabular-nums text-muted">
                         {available}/{group.regions.length}
@@ -186,37 +191,37 @@ export function NetworkPage() {
             )}
           </Panel>
 
-          <Panel title="Having connection issues?">
+          <Panel title={t("network.issuesPanel")}>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3">
                 <Wrench className="mt-0.5 size-4 shrink-0 text-subtle" />
                 <span className="text-muted">
-                  Re-import your subscription or switch clients — see the{" "}
+                  {t("network.issueSetupPre")}
                   <Link
                     to="/setup"
                     className="rounded-sm text-primary hover:underline focus-ring"
                   >
-                    setup guide
+                    {t("network.issueSetupLink")}
                   </Link>
-                  .
+                  {t("network.issueSetupPost")}
                 </span>
               </li>
               <li className="flex items-start gap-3">
                 <LifeBuoy className="mt-0.5 size-4 shrink-0 text-subtle" />
                 <span className="text-muted">
-                  Still stuck?{" "}
+                  {t("network.issueSupportPre")}
                   <Link
                     to="/console/support"
                     className="rounded-sm text-primary hover:underline focus-ring"
                   >
-                    Contact support
-                  </Link>{" "}
-                  with the affected region.
+                    {t("network.issueSupportLink")}
+                  </Link>
+                  {t("network.issueSupportPost")}
                 </span>
               </li>
             </ul>
             <div className="mt-5 border-t border-border pt-4">
-              <PanelLink to="/help">Browse the Help Center</PanelLink>
+              <PanelLink to="/help">{t("network.browseHelp")}</PanelLink>
             </div>
           </Panel>
         </SideRail>

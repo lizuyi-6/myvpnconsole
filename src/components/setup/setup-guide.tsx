@@ -1,51 +1,27 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SubscriptionUrlField } from "@/components/subscription/subscription-url-field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
+import { useI18n } from "@/i18n";
 import { subscriptionService } from "@/services/subscription";
 import { useAuthStore } from "@/store/auth";
 import type { DevicePlatform } from "@/types";
-import { useState } from "react";
 
 interface PlatformGuide {
   id: DevicePlatform;
   label: string;
   client: string;
-  clientNote: string;
 }
 
+/** Platform metadata — client names are proper nouns, notes are localized. */
 export const PLATFORM_GUIDES: PlatformGuide[] = [
-  {
-    id: "windows",
-    label: "Windows",
-    client: "Clash Verge",
-    clientNote: "Free, open-source client with system proxy support.",
-  },
-  {
-    id: "macos",
-    label: "macOS",
-    client: "ClashX Meta",
-    clientNote: "Lightweight menu-bar client for macOS.",
-  },
-  {
-    id: "ios",
-    label: "iOS",
-    client: "Shadowrocket",
-    clientNote: "Available on the App Store.",
-  },
-  {
-    id: "android",
-    label: "Android",
-    client: "Clash Meta for Android",
-    clientNote: "Open-source client for Android 7+.",
-  },
-  {
-    id: "linux",
-    label: "Linux",
-    client: "Clash Verge",
-    clientNote: "AppImage and package builds for major distros.",
-  },
+  { id: "windows", label: "Windows", client: "Clash Verge" },
+  { id: "macos", label: "macOS", client: "ClashX Meta" },
+  { id: "ios", label: "iOS", client: "Shadowrocket" },
+  { id: "android", label: "Android", client: "Clash Meta for Android" },
+  { id: "linux", label: "Linux", client: "Clash Verge" },
 ];
 
 /**
@@ -69,6 +45,7 @@ export function SetupGuide({
   controlClassName?: string;
 }) {
   const user = useAuthStore((s) => s.user);
+  const { t } = useI18n();
   const validInitial = PLATFORM_GUIDES.some((g) => g.id === initialPlatform)
     ? (initialPlatform as DevicePlatform)
     : "windows";
@@ -80,10 +57,7 @@ export function SetupGuide({
 
   // Only fetch the subscription for signed-in users
   const subscription = useAsync(
-    () =>
-      user
-        ? subscriptionService.getCurrent()
-        : Promise.resolve(null),
+    () => (user ? subscriptionService.getCurrent() : Promise.resolve(null)),
     [user?.email],
   );
 
@@ -91,7 +65,7 @@ export function SetupGuide({
     <div>
       <div className={controlClassName}>
         <SegmentedControl
-          aria-label="Platform"
+          aria-label={t("setup.guide.platformAria")}
           options={PLATFORM_GUIDES.map((g) => ({ value: g.id, label: g.label }))}
           value={platform}
           onChange={setPlatform}
@@ -101,26 +75,30 @@ export function SetupGuide({
 
       <div className="mt-8">
         <p className="text-sm font-medium text-foreground">
-          Recommended client — {guide.client}
+          {t("setup.guide.recommendedClient", { client: guide.client })}
         </p>
-        <p className="mt-0.5 text-[13px] text-subtle">{guide.clientNote}</p>
+        <p className="mt-0.5 text-[13px] text-subtle">
+          {t(`setup.guide.clientNotes.${platform}`)}
+        </p>
       </div>
 
       <ol className="mt-8 space-y-7">
         <li>
           <p className="text-sm font-medium text-foreground">
             <span className="mr-2 tabular-nums text-primary">1.</span>
-            Install {guide.client}
+            {t("setup.guide.step1Title", { client: guide.client })}
           </p>
           <p className="mt-1 pl-6 text-sm leading-relaxed text-muted">
-            Download {guide.client} for {guide.label} from its official release
-            page and install it like any other application.
+            {t("setup.guide.step1Body", {
+              client: guide.client,
+              platform: guide.label,
+            })}
           </p>
         </li>
         <li>
           <p className="text-sm font-medium text-foreground">
             <span className="mr-2 tabular-nums text-primary">2.</span>
-            Copy your subscription URL
+            {t("setup.guide.step2Title")}
           </p>
           <div className="mt-2 pl-6">
             {user ? (
@@ -134,12 +112,12 @@ export function SetupGuide({
                 </div>
               ) : (
                 <p className="text-sm text-muted">
-                  Couldn't load your subscription.{" "}
+                  {t("common.couldntLoadSubscription")}{" "}
                   <button
                     onClick={subscription.retry}
                     className="text-primary hover:underline focus-ring rounded-sm"
                   >
-                    Retry
+                    {t("common.retry")}
                   </button>
                 </p>
               )
@@ -149,10 +127,9 @@ export function SetupGuide({
                   to="/login?next=/setup"
                   className="text-primary hover:underline focus-ring rounded-sm"
                 >
-                  Sign in
-                </Link>{" "}
-                to view your subscription URL. You can finish the rest of the
-                guide first.
+                  {t("setup.guide.step2SignInLink")}
+                </Link>
+                {t("setup.guide.step2SignInPost")}
               </p>
             )}
           </div>
@@ -160,29 +137,26 @@ export function SetupGuide({
         <li>
           <p className="text-sm font-medium text-foreground">
             <span className="mr-2 tabular-nums text-primary">3.</span>
-            Import the subscription
+            {t("setup.guide.step3Title")}
           </p>
           <p className="mt-1 pl-6 text-sm leading-relaxed text-muted">
-            In {guide.client}, find the profiles or subscriptions section, add
-            a new profile from URL, and paste your subscription link. The region
-            list downloads automatically.
+            {t("setup.guide.step3Body", { client: guide.client })}
           </p>
         </li>
         <li>
           <p className="text-sm font-medium text-foreground">
             <span className="mr-2 tabular-nums text-primary">4.</span>
-            Connect
+            {t("setup.guide.step4Title")}
           </p>
           <p className="mt-1 pl-6 text-sm leading-relaxed text-muted">
-            Pick a region and enable the connection. If a region feels slow,
-            switch to another — check the{" "}
+            {t("setup.guide.step4Pre")}
             <Link
               to="/network"
               className="text-primary hover:underline focus-ring rounded-sm"
             >
-              network page
-            </Link>{" "}
-            for current status.
+              {t("setup.guide.step4Link")}
+            </Link>
+            {t("setup.guide.step4Post")}
           </p>
         </li>
       </ol>

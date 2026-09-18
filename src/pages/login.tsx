@@ -1,34 +1,41 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useI18n, type Dictionary } from "@/i18n";
+import { InvalidCredentialsError } from "@/services/auth";
 import { useAuthStore } from "@/store/auth";
 
-const loginSchema = z.object({
-  email: z.string().email("Enter a valid email address"),
-  password: z.string().min(1, "Enter your password"),
-});
+function buildLoginSchema(dict: Dictionary) {
+  return z.object({
+    email: z.string().email(dict.auth.login.errors.emailInvalid),
+    password: z.string().min(1, dict.auth.login.errors.passwordRequired),
+  });
+}
 
-type LoginForm = z.infer<typeof loginSchema>;
+type LoginForm = z.infer<ReturnType<typeof buildLoginSchema>>;
 
 export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const signIn = useAuthStore((s) => s.signIn);
+  const { t, dict } = useI18n();
   const [serverError, setServerError] = useState<string | null>(null);
+  const schema = useMemo(() => buildLoginSchema(dict), [dict]);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
   });
 
@@ -43,7 +50,9 @@ export function LoginPage() {
     } catch (err) {
       // Email stays filled — only the error is shown.
       setServerError(
-        err instanceof Error ? err.message : "Sign in failed. Please try again.",
+        err instanceof InvalidCredentialsError
+          ? t("auth.login.errors.invalidCredentials")
+          : t("auth.login.errors.generic"),
       );
     }
   });
@@ -54,11 +63,9 @@ export function LoginPage() {
         <div className="flex flex-col items-center text-center">
           <Logo />
           <h1 className="mt-6 text-xl font-semibold tracking-tight text-foreground">
-            Sign in to your account
+            {t("auth.login.title")}
           </h1>
-          <p className="mt-1.5 text-sm text-muted">
-            Welcome back. Enter your details to continue.
-          </p>
+          <p className="mt-1.5 text-sm text-muted">{t("auth.login.subtitle")}</p>
         </div>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4" noValidate>
@@ -73,7 +80,7 @@ export function LoginPage() {
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("auth.login.email")}</Label>
             <Input
               id="email"
               type="email"
@@ -81,21 +88,20 @@ export function LoginPage() {
               autoFocus
               placeholder="you@example.com"
               aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "login-email-error" : undefined}
               {...register("email")}
             />
-            {errors.email && (
-              <p className="text-xs text-danger">{errors.email.message}</p>
-            )}
+            <FieldError id="login-email-error" message={errors.email?.message} />
           </div>
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("auth.login.password")}</Label>
               <Link
                 to="/login"
                 className="text-xs text-subtle transition-colors hover:text-primary focus-ring rounded-sm"
               >
-                Forgot password?
+                {t("auth.login.forgot")}
               </Link>
             </div>
             <Input
@@ -104,32 +110,36 @@ export function LoginPage() {
               autoComplete="current-password"
               placeholder="••••••••"
               aria-invalid={!!errors.password}
+              aria-describedby={
+                errors.password ? "login-password-error" : undefined
+              }
               {...register("password")}
             />
-            {errors.password && (
-              <p className="text-xs text-danger">{errors.password.message}</p>
-            )}
+            <FieldError
+              id="login-password-error"
+              message={errors.password?.message}
+            />
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Signing in…
+                {t("auth.login.submitting")}
               </>
             ) : (
-              "Sign in"
+              t("auth.login.submit")
             )}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-subtle">
-          New here?{" "}
+          {t("auth.login.footerPre")}{" "}
           <Link
             to="/register"
             className="font-medium text-primary hover:underline focus-ring rounded-sm"
           >
-            Create an account
+            {t("auth.login.footerLink")}
           </Link>
         </p>
       </div>

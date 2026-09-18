@@ -1,25 +1,28 @@
 import { Link, useParams } from "react-router-dom";
 import { Container } from "@/components/layout/container";
-import { legalDocOrder, legalDocs } from "@/content/legal";
+import { legalDocOrder } from "@/content/legal";
+import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 export function LegalPage() {
   const { doc } = useParams();
-  const entry = (doc ? legalDocs[doc] : undefined) ?? legalDocs.terms;
+  const { t, dict } = useI18n();
+  const docs = dict.legal.docs;
+  const entry = (doc && doc in docs ? docs[doc as keyof typeof docs] : undefined) ?? docs.terms;
 
   return (
     <Container className="py-12 md:py-16 lg:py-20">
       <div className="grid items-start gap-10 lg:grid-cols-12">
         {/* Document navigation — vertical on desktop, pills on mobile */}
         <nav
-          aria-label="Legal documents"
+          aria-label={t("legal.navAria")}
           className="flex flex-wrap gap-2 lg:sticky lg:top-24 lg:col-span-3 lg:flex-col lg:gap-1"
         >
           <p className="hidden px-3 pb-2 text-xs font-medium uppercase tracking-wide text-subtle lg:block">
-            Legal
+            {t("legal.navLabel")}
           </p>
           {legalDocOrder.map((slug) => {
-            const d = legalDocs[slug];
+            const d = docs[slug];
             const active = d.slug === entry.slug;
             return (
               <Link
@@ -46,7 +49,7 @@ export function LegalPage() {
           </h1>
           <p className="mt-2 text-[15px] text-muted">{entry.summary}</p>
           <p className="mt-1 text-[13px] text-subtle">
-            Effective {entry.effectiveDate}
+            {t("legal.effective", { date: entry.effectiveDate })}
           </p>
 
           <div className="mt-10 space-y-9">
@@ -79,7 +82,7 @@ export function LegalPage() {
               to="/help"
               className="rounded-sm text-primary hover:underline focus-ring"
             >
-              Back to Help Center
+              {t("legal.back")}
             </Link>
           </p>
         </div>

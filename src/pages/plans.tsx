@@ -1,8 +1,6 @@
 import {
   AppWindow,
   Check,
-  Copy,
-  Globe,
   LifeBuoy,
   MonitorSmartphone,
   RefreshCw,
@@ -19,12 +17,11 @@ import { SideRail } from "@/components/layout/side-rail";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
-import { cn, formatCurrency } from "@/lib/utils";
-import { DEVICE_LIMIT, INCLUDED, SERVICE_NAME } from "@/mocks/plans";
+import { interpolate, useI18n } from "@/i18n";
+import { cn } from "@/lib/utils";
+import { DEVICE_LIMIT } from "@/mocks/plans";
 import { networkService } from "@/services/network";
 import { planService } from "@/services/plans";
-
-const PLATFORMS = ["Windows", "macOS", "iOS", "Android", "Linux"];
 
 /**
  * Plans is not a catalog. There is one service — Network Access —
@@ -33,6 +30,7 @@ const PLATFORMS = ["Windows", "macOS", "iOS", "Android", "Linux"];
  */
 export function PlansPage() {
   const navigate = useNavigate();
+  const { t, dict, formatCurrency } = useI18n();
   const { data: plans, loading, error, retry } = useAsync(
     () => planService.listPlans(),
     [],
@@ -49,35 +47,37 @@ export function PlansPage() {
     <Container className="py-12 md:py-16 lg:py-20">
       <PageHeader
         size="lg"
-        title={SERVICE_NAME}
-        description="Everything you need to connect. Choose how long you want access."
+        title={t("plans.title", { service: t("common.serviceName") })}
+        description={t("plans.description")}
       />
 
       {error ? (
         <div className="mt-12">
-          <ErrorState message="We couldn't load plans." onRetry={retry} />
+          <ErrorState message={t("plans.loadError")} onRetry={retry} />
         </div>
       ) : (
         <div className="mt-10 grid items-start gap-8 lg:grid-cols-12 lg:gap-10">
           {/* Service details */}
           <div className="space-y-6 lg:col-span-7">
-            <Panel title="What's included">
+            <Panel title={t("plans.includedPanel")}>
               <ul className="grid gap-x-10 gap-y-3.5 sm:grid-cols-2">
-                {INCLUDED.map((item) => (
+                {dict.plans.included.map((item) => (
                   <li
                     key={item}
                     className="flex items-start gap-3 text-sm text-foreground"
                   >
                     <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                    {item}
+                    {interpolate(item, { count: DEVICE_LIMIT })}
                   </li>
                 ))}
               </ul>
             </Panel>
 
             <Panel
-              title="Region access"
-              action={<PanelLink to="/network">View network</PanelLink>}
+              title={t("plans.regionPanel")}
+              action={
+                <PanelLink to="/network">{t("plans.viewNetwork")}</PanelLink>
+              }
             >
               <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-muted">
                 <StatusDot
@@ -87,58 +87,43 @@ export function PlansPage() {
                 />
                 <span className="tabular-nums text-foreground">
                   {status.data
-                    ? `${status.data.activeRegions} of ${status.data.totalRegions} regions available`
+                    ? t("plans.regionStatus", {
+                        active: status.data.activeRegions,
+                        total: status.data.totalRegions,
+                      })
                     : "…"}
                 </span>
-                across North America, Asia Pacific, Europe and Oceania
+                {t("plans.regionAreasLine")}
               </p>
               <p className="mt-3 text-sm leading-relaxed text-muted">
-                Every duration includes all regions. Switch regions anytime
-                from your client — status and latency are always public on the
-                network page.
+                {t("plans.regionBody")}
               </p>
             </Panel>
 
-            <Panel title="Devices and platforms">
+            <Panel title={t("plans.devicesPanel")}>
               <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
                 <p className="flex items-center gap-3 text-sm text-foreground">
                   <MonitorSmartphone className="size-4 text-primary" />
-                  Up to {DEVICE_LIMIT} devices at once
+                  {t("plans.devicesAtOnce", { count: DEVICE_LIMIT })}
                 </p>
                 <p className="flex items-center gap-3 text-sm text-foreground">
                   <AppWindow className="size-4 text-primary" />
-                  {PLATFORMS.join(" · ")}
+                  {t("common.platformLine")}
                 </p>
               </div>
               <p className="mt-3 text-sm leading-relaxed text-muted">
-                Add, rename or remove devices anytime from the console. Setup
-                guides with a recommended client are published for every
-                platform.
+                {t("plans.devicesBody")}
               </p>
             </Panel>
 
-            <Panel title="How activation works">
+            <Panel title={t("plans.activationPanel")}>
               <ol className="grid gap-x-10 gap-y-5 sm:grid-cols-3">
-                {[
-                  {
-                    icon: Zap,
-                    title: "Activate",
-                    text: "Checkout completes and your subscription starts immediately.",
-                  },
-                  {
-                    icon: Copy,
-                    title: "Copy your URL",
-                    text: "Your personal subscription URL appears in the console.",
-                  },
-                  {
-                    icon: Globe,
-                    title: "Connect",
-                    text: "Import the URL into a compatible client and pick a region.",
-                  },
-                ].map((step, i) => (
+                {dict.plans.activation.map((step, i) => (
                   <li key={step.title}>
                     <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <span className="tabular-nums text-primary">{i + 1}.</span>
+                      <span className="tabular-nums text-primary">
+                        {i + 1}.
+                      </span>
                       {step.title}
                     </p>
                     <p className="mt-1.5 text-[13px] leading-relaxed text-muted">
@@ -149,29 +134,27 @@ export function PlansPage() {
               </ol>
             </Panel>
 
-            <Panel title="Renewal behavior">
+            <Panel title={t("plans.renewalPanel")}>
               <p className="flex items-start gap-3 text-sm leading-relaxed text-muted">
                 <RefreshCw className="mt-0.5 size-4 shrink-0 text-subtle" />
-                Renewing before expiry extends your current end date, so no
-                paid time is lost. Your subscription URL stays the same across
-                renewals — no need to update your clients.
+                {t("plans.renewalBody")}
               </p>
               <p className="mt-4 border-t border-border pt-4 text-sm text-muted">
-                Questions?{" "}
+                {t("plans.questionsPre")}{" "}
                 <Link
                   to="/help"
                   className="rounded-sm text-primary hover:underline focus-ring"
                 >
-                  Check the Help Center
+                  {t("plans.questionsLink")}
                 </Link>
-                .
+                {t("plans.questionsPost")}
               </p>
             </Panel>
           </div>
 
           {/* Sticky purchase panel */}
           <SideRail className="lg:col-span-5">
-            <Panel title="Choose duration" className="shadow-panel">
+            <Panel title={t("plans.durationPanel")} className="shadow-panel">
               {loading ? (
                 <div className="space-y-3">
                   {[0, 1, 2].map((i) => (
@@ -182,7 +165,7 @@ export function PlansPage() {
                 <>
                   <div
                     role="radiogroup"
-                    aria-label="Plan duration"
+                    aria-label={t("plans.durationAria")}
                     className="space-y-3"
                   >
                     {plans?.map((plan) => {
@@ -196,10 +179,10 @@ export function PlansPage() {
                         <label
                           key={plan.id}
                           className={cn(
-                            "flex cursor-pointer items-center justify-between gap-4 rounded-lg border bg-surface px-4 py-3.5 transition-colors duration-150",
+                            "flex cursor-pointer items-center justify-between gap-4 rounded-lg border bg-surface px-4 py-3.5 transition-[border-color,box-shadow] duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-surface",
                             active
                               ? "border-primary shadow-sm ring-1 ring-primary/30"
-                              : "border-border hover:border-subtle/60",
+                              : "border-border hover:border-subtle/60 hover:shadow-card",
                           )}
                         >
                           <span className="flex items-center gap-3">
@@ -213,10 +196,14 @@ export function PlansPage() {
                             />
                             <span>
                               <span className="block text-sm font-medium text-foreground">
-                                {plan.label}
+                                {t("common.planLabel", {
+                                  days: plan.durationDays,
+                                })}
                               </span>
                               <span className="block text-xs text-subtle">
-                                {formatCurrency(monthly)} / month equivalent
+                                {t("plans.monthlyEquivalent", {
+                                  price: formatCurrency(monthly),
+                                })}
                               </span>
                             </span>
                           </span>
@@ -226,7 +213,7 @@ export function PlansPage() {
                             </span>
                             {savePct > 0 && (
                               <span className="block text-xs font-medium text-success">
-                                Save {savePct}%
+                                {t("plans.save", { percent: savePct })}
                               </span>
                             )}
                           </span>
@@ -236,7 +223,7 @@ export function PlansPage() {
                   </div>
 
                   <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
-                    <span className="text-sm text-muted">Total</span>
+                    <span className="text-sm text-muted">{t("plans.total")}</span>
                     <span className="text-lg font-semibold tabular-nums text-foreground">
                       {formatCurrency(selectedPlan?.price ?? 0)}
                     </span>
@@ -247,22 +234,24 @@ export function PlansPage() {
                     className="mt-4 w-full"
                     onClick={() => navigate(`/checkout?plan=${selected}`)}
                   >
-                    Continue — {formatCurrency(selectedPlan?.price ?? 0)}
+                    {t("plans.continue", {
+                      price: formatCurrency(selectedPlan?.price ?? 0),
+                    })}
                   </Button>
 
                   {/* Purchase trust — what happens after payment */}
                   <ul className="mt-6 space-y-2.5 border-t border-border pt-5 text-[13px] text-muted">
                     <li className="flex items-center gap-2.5">
                       <Zap className="size-3.5 shrink-0 text-subtle" />
-                      Immediate activation — URL in your console right away
+                      {t("plans.trustImmediate")}
                     </li>
                     <li className="flex items-center gap-2.5">
                       <MonitorSmartphone className="size-3.5 shrink-0 text-subtle" />
-                      Manage devices and renewals from the console
+                      {t("plans.trustManage")}
                     </li>
                     <li className="flex items-center gap-2.5">
                       <LifeBuoy className="size-3.5 shrink-0 text-subtle" />
-                      Human support on every plan
+                      {t("plans.trustSupport")}
                     </li>
                   </ul>
                 </>
@@ -270,14 +259,14 @@ export function PlansPage() {
             </Panel>
 
             <p className="text-sm text-muted">
-              Already have access?{" "}
+              {t("plans.alreadyHavePre")}{" "}
               <Link
                 to="/console/subscription"
                 className="rounded-sm text-primary hover:underline focus-ring"
               >
-                Manage your subscription
+                {t("plans.alreadyHaveLink")}
               </Link>
-              .
+              {t("plans.alreadyHavePost")}
             </p>
           </SideRail>
         </div>

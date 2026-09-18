@@ -15,7 +15,8 @@
     --foreground: 23 32 51;
     /* Soft gray-blue secondary text */
     --muted: 85 97 122;
-    --subtle: 127 138 160;
+    /* Tertiary text — darkened to ≥4.5:1 on white (WCAG AA / HIG legibility) */
+    --subtle: 104 115 137;
     /* Stable network blue, injected from src/config/brand.ts */
     --primary: 40 103 232;
     --primary-foreground: 255 255 255;

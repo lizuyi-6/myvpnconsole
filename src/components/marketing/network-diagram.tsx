@@ -1,3 +1,4 @@
+import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 import type { RegionStatus } from "@/types";
 
@@ -28,13 +29,14 @@ export function NetworkDiagram({
   regions: DiagramRegion[];
   className?: string;
 }) {
+  const { t } = useI18n();
   const nodes = regions.slice(0, 4);
 
   return (
     <svg
       viewBox="0 0 480 344"
       role="img"
-      aria-label="Diagram: your device connects through the NOVA network to regions worldwide"
+      aria-label={t("home.hero.diagram.ariaLabel")}
       className={cn("h-auto w-full", className)}
     >
       {/* device → hub */}
@@ -52,7 +54,7 @@ export function NetworkDiagram({
         textAnchor="middle"
         className="fill-subtle text-[9px]"
       >
-        Secure connection
+        {t("home.hero.diagram.secureConnection")}
       </text>
 
       {/* hub → regions */}
@@ -82,10 +84,10 @@ export function NetworkDiagram({
         />
         <circle cx="28" cy="165" r="3" className="fill-primary" />
         <text x="38" y="169" className="fill-foreground text-[12px] font-medium">
-          Your device
+          {t("home.hero.diagram.device")}
         </text>
         <text x="38" y="186" className="fill-subtle text-[10px]">
-          Any platform
+          {t("home.hero.diagram.anyPlatform")}
         </text>
       </g>
 
@@ -115,7 +117,7 @@ export function NetworkDiagram({
           textAnchor="middle"
           className="fill-foreground text-[12px] font-medium"
         >
-          NOVA network
+          {t("home.hero.diagram.network")}
         </text>
         <text
           x="250"
@@ -123,7 +125,7 @@ export function NetworkDiagram({
           textAnchor="middle"
           className="fill-subtle text-[10px]"
         >
-          One subscription
+          {t("home.hero.diagram.oneSubscription")}
         </text>
       </g>
 
