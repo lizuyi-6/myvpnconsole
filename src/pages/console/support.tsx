@@ -1,11 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LifeBuoy, Loader2, Plus } from "lucide-react";
+import { LifeBuoy, Loader2, Plus, Wifi, Wrench } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { StatusDot } from "@/components/feedback/status-dot";
+import { PageHeader } from "@/components/layout/page-header";
+import { Panel, PanelLink } from "@/components/layout/panel";
+import { SideRail } from "@/components/layout/side-rail";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAsync } from "@/hooks/use-async";
 import { formatDate } from "@/lib/utils";
 import { billingService } from "@/services/billing";
+import { networkService } from "@/services/network";
 import { supportService } from "@/services/support";
 import {
   TICKET_CATEGORY_LABELS,
@@ -186,70 +190,143 @@ function CreateTicketDialog({ onCreated }: { onCreated: () => void }) {
 
 export function ConsoleSupportPage() {
   const tickets = useAsync(() => supportService.listTickets(), []);
+  const status = useAsync(() => networkService.getStatus(), []);
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Support</h1>
-          <p className="mt-1 text-sm text-muted">
-            Track existing tickets or open a new one.
-          </p>
-        </div>
-        <CreateTicketDialog onCreated={tickets.retry} />
-      </div>
+      <PageHeader
+        title="Support"
+        description="Track existing tickets or open a new one."
+        actions={<CreateTicketDialog onCreated={tickets.retry} />}
+      />
 
-      <div className="mt-8">
-        {tickets.loading ? (
-          <div className="space-y-3">
-            {[0, 1].map((i) => (
-              <Skeleton key={i} className="h-20 w-full" />
-            ))}
-          </div>
-        ) : tickets.error ? (
-          <ErrorState
-            message="We couldn't load your tickets."
-            onRetry={tickets.retry}
-          />
-        ) : !tickets.data || tickets.data.length === 0 ? (
-          <EmptyState
-            icon={LifeBuoy}
-            title="No tickets"
-            message="You haven't opened any support tickets yet."
-          />
-        ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface px-5 shadow-card">
-            {tickets.data.map((ticket) => (
-              <li key={ticket.id} className="py-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                    <h2 className="text-sm font-medium text-foreground">
-                      {ticket.subject}
-                    </h2>
-                    <span className="inline-flex items-center gap-1.5 text-xs text-muted">
-                      <StatusDot tone={TICKET_STATUS[ticket.status].tone} />
-                      {TICKET_STATUS[ticket.status].label}
-                    </span>
-                    <span className="text-xs text-subtle">
-                      {TICKET_CATEGORY_LABELS[ticket.category]}
-                    </span>
-                  </div>
-                  <p className="text-xs text-subtle">
-                    Updated {formatDate(ticket.updatedAt)}
+      <div className="mt-6 grid items-start gap-6 xl:grid-cols-12">
+        {/* Tickets */}
+        <div className="xl:col-span-7">
+          <Panel title="Your tickets" bodyClassName="px-6 pb-2 pt-0 lg:px-7 lg:pb-2 lg:pt-0">
+            {tickets.loading ? (
+              <div className="space-y-3 py-4">
+                {[0, 1].map((i) => (
+                  <Skeleton key={i} className="h-20 w-full" />
+                ))}
+              </div>
+            ) : tickets.error ? (
+              <div className="py-4">
+                <ErrorState
+                  message="We couldn't load your tickets."
+                  onRetry={tickets.retry}
+                />
+              </div>
+            ) : !tickets.data || tickets.data.length === 0 ? (
+              <div className="py-4">
+                <EmptyState
+                  icon={LifeBuoy}
+                  title="No tickets"
+                  message="You haven't opened any support tickets yet."
+                />
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {tickets.data.map((ticket) => (
+                  <li key={ticket.id} className="py-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                        <h2 className="text-sm font-medium text-foreground">
+                          {ticket.subject}
+                        </h2>
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+                          <StatusDot tone={TICKET_STATUS[ticket.status].tone} />
+                          {TICKET_STATUS[ticket.status].label}
+                        </span>
+                        <span className="text-xs text-subtle">
+                          {TICKET_CATEGORY_LABELS[ticket.category]}
+                        </span>
+                      </div>
+                      <p className="text-xs text-subtle">
+                        Updated {formatDate(ticket.updatedAt)}
+                      </p>
+                    </div>
+                    <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted">
+                      {ticket.message}
+                    </p>
+                    {ticket.paymentNumber && (
+                      <p className="mt-1.5 font-mono text-xs text-subtle">
+                        Payment {ticket.paymentNumber}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </div>
+
+        {/* Before opening a ticket */}
+        <SideRail className="xl:col-span-5">
+          <Panel title="Before opening a ticket">
+            <ul className="space-y-4 text-sm">
+              <li className="flex items-start gap-3">
+                <Wifi className="mt-0.5 size-4 shrink-0 text-subtle" />
+                <div>
+                  <p className="font-medium text-foreground">
+                    Check network status
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-2 text-[13px] text-muted">
+                    <StatusDot
+                      tone={
+                        status.data?.status === "operational"
+                          ? "success"
+                          : "warning"
+                      }
+                    />
+                    {status.data
+                      ? status.data.status === "operational"
+                        ? "All systems operational"
+                        : "Some regions degraded"
+                      : "…"}
+                  </p>
+                  <p className="mt-1">
+                    <PanelLink to="/network">Region status</PanelLink>
                   </p>
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted">
-                  {ticket.message}
-                </p>
-                {ticket.paymentNumber && (
-                  <p className="mt-1.5 font-mono text-xs text-subtle">
-                    Payment {ticket.paymentNumber}
-                  </p>
-                )}
               </li>
-            ))}
-          </ul>
-        )}
+              <li className="flex items-start gap-3">
+                <Wrench className="mt-0.5 size-4 shrink-0 text-subtle" />
+                <div>
+                  <p className="font-medium text-foreground">
+                    Re-run the setup guide
+                  </p>
+                  <p className="mt-0.5 text-[13px] leading-relaxed text-muted">
+                    Re-import your subscription URL — it fixes most client
+                    issues.
+                  </p>
+                  <p className="mt-1">
+                    <PanelLink to="/console/setup">Open setup</PanelLink>
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <LifeBuoy className="mt-0.5 size-4 shrink-0 text-subtle" />
+                <div>
+                  <p className="font-medium text-foreground">
+                    Browse common answers
+                  </p>
+                  <p className="mt-0.5 text-[13px] leading-relaxed text-muted">
+                    Renewal, device limits and subscription URLs are covered in
+                    the Help Center.
+                  </p>
+                  <p className="mt-1">
+                    <PanelLink to="/help">Help Center</PanelLink>
+                  </p>
+                </div>
+              </li>
+            </ul>
+            <p className="mt-5 border-t border-border pt-4 text-[13px] leading-relaxed text-muted">
+              Opening a ticket anyway? Include the affected region and the
+              approximate time — it speeds things up.
+            </p>
+          </Panel>
+        </SideRail>
       </div>
     </div>
   );

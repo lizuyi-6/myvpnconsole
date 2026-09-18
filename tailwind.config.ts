@@ -39,7 +39,12 @@ export default {
         ],
       },
       maxWidth: {
-        content: "1200px",
+        // Public site workspace — desktop-first, capped so 1920px doesn't stretch
+        content: "1360px",
+        // Console main workspace (after the 256px sidebar)
+        workspace: "1400px",
+        // Narrow reading column (legal, auth forms)
+        article: "760px",
       },
       keyframes: {
         "fade-in": {

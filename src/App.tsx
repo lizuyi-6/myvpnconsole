@@ -67,7 +67,7 @@ const ConsoleSettingsPage = lazy(() =>
 
 function PageFallback() {
   return (
-    <div className="mx-auto w-full max-w-[960px] space-y-4 px-5 py-12 sm:px-8">
+    <div className="mx-auto w-full max-w-workspace space-y-4 px-5 py-12 sm:px-8">
       <Skeleton className="h-7 w-40" />
       <Skeleton className="h-4 w-64" />
       <Skeleton className="mt-6 h-40 w-full" />

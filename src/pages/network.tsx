@@ -1,6 +1,11 @@
+import { LifeBuoy, Wrench } from "lucide-react";
+import { Link } from "react-router-dom";
 import { ErrorState } from "@/components/feedback/error-state";
 import { StatusDot } from "@/components/feedback/status-dot";
 import { Container } from "@/components/layout/container";
+import { PageHeader } from "@/components/layout/page-header";
+import { Panel, PanelLink } from "@/components/layout/panel";
+import { SideRail } from "@/components/layout/side-rail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
 import { networkService } from "@/services/network";
@@ -32,100 +37,189 @@ function groupByArea(regions: Region[]) {
   })).filter((group) => group.regions.length > 0);
 }
 
-export function NetworkPage() {
-  const regions = useAsync(() => networkService.listRegions(), []);
+function StatusRailPanel() {
   const status = useAsync(() => networkService.getStatus(), []);
-
   return (
-    <Container className="max-w-[1000px] py-14 md:py-20">
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-        Network
-      </h1>
-      <p className="mt-3 max-w-xl text-base leading-relaxed text-muted">
-        Region availability and current service status — always public,
-        updated continuously.
-      </p>
-
-      {/* Service status panel */}
-      <div className="mt-10 rounded-xl border border-border bg-surface px-6 py-5 shadow-card">
-        {status.loading ? (
-          <Skeleton className="h-5 w-64" />
-        ) : status.error ? (
-          <p className="text-sm text-muted">
-            Status unavailable right now.{" "}
-            <button
-              onClick={status.retry}
-              className="text-primary hover:underline focus-ring rounded-sm"
-            >
-              Retry
-            </button>
-          </p>
-        ) : (
-          <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px] text-foreground">
+    <Panel title="Network status">
+      {status.loading ? (
+        <Skeleton className="h-5 w-44" />
+      ) : (
+        <>
+          <p className="flex items-center gap-2.5 text-[15px] font-medium text-foreground">
             <StatusDot
               tone={status.data?.status === "operational" ? "success" : "warning"}
             />
-            <span className="font-medium">
-              {status.data?.status === "operational"
-                ? "All systems operational"
-                : "Some regions degraded"}
-            </span>
-            <span className="text-muted">
-              · {status.data?.activeRegions} of {status.data?.totalRegions}{" "}
-              regions available
-            </span>
+            {status.data?.status === "operational"
+              ? "All systems operational"
+              : "Some regions degraded"}
           </p>
-        )}
-      </div>
-
-      {/* Regions, grouped by area */}
-      <div className="mt-8">
-        {regions.loading ? (
-          <Skeleton className="h-96 w-full" />
-        ) : regions.error ? (
-          <ErrorState
-            message="We couldn't load region information."
-            onRetry={regions.retry}
-          />
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-card">
-            <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 border-b border-border bg-background/60 px-6 py-3 text-xs font-medium uppercase tracking-wide text-subtle sm:grid-cols-[1fr_120px_90px]">
-              <span>Region</span>
-              <span>Status</span>
-              <span className="text-right">Latency</span>
+          <dl className="mt-5 space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <dt className="text-muted">Available regions</dt>
+              <dd className="font-medium tabular-nums text-foreground">
+                {status.data
+                  ? `${status.data.activeRegions} / ${status.data.totalRegions}`
+                  : "—"}
+              </dd>
             </div>
-            {groupByArea(regions.data ?? []).map((group) => (
-              <div key={group.area}>
-                <p className="border-b border-border/70 bg-background/40 px-6 py-2.5 text-xs font-medium uppercase tracking-wide text-subtle">
-                  {group.area}
-                </p>
-                <ul className="divide-y divide-border/70">
-                  {group.regions.map((region) => (
+            <div className="flex items-center justify-between">
+              <dt className="text-muted">Coverage</dt>
+              <dd className="text-foreground">{AREA_ORDER.length} areas</dd>
+            </div>
+          </dl>
+        </>
+      )}
+    </Panel>
+  );
+}
+
+export function NetworkPage() {
+  const regions = useAsync(() => networkService.listRegions(), []);
+  const groups = groupByArea(regions.data ?? []);
+
+  return (
+    <Container className="py-12 md:py-16 lg:py-20">
+      <PageHeader
+        size="lg"
+        title="Network"
+        description="Region availability and current service status — always public, updated continuously."
+      />
+
+      <div className="mt-10 grid items-start gap-8 lg:grid-cols-12 lg:gap-10">
+        {/* Region table — the primary desktop surface */}
+        <div className="order-2 lg:order-1 lg:col-span-8">
+          {regions.loading ? (
+            <Skeleton className="h-[480px] w-full" />
+          ) : regions.error ? (
+            <ErrorState
+              message="We couldn't load region information."
+              onRetry={regions.retry}
+            />
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-card">
+              <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 border-b border-border bg-background/60 px-6 py-3 text-xs font-medium uppercase tracking-wide text-subtle sm:grid-cols-[1.2fr_1fr_120px_90px] lg:px-7">
+                <span>Region</span>
+                <span className="hidden sm:block">Area</span>
+                <span>Status</span>
+                <span className="text-right">Latency</span>
+              </div>
+              {groups.map((group) => (
+                <div key={group.area}>
+                  <p className="flex items-center justify-between border-b border-border/70 bg-background/40 px-6 py-2.5 text-xs font-medium uppercase tracking-wide text-subtle lg:px-7">
+                    {group.area}
+                    <span className="tabular-nums normal-case tracking-normal">
+                      {group.regions.length}{" "}
+                      {group.regions.length === 1 ? "region" : "regions"}
+                    </span>
+                  </p>
+                  <ul className="divide-y divide-border/70">
+                    {group.regions.map((region) => (
+                      <li
+                        key={region.id}
+                        className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-6 py-4 text-sm sm:grid-cols-[1.2fr_1fr_120px_90px] lg:px-7"
+                      >
+                        <span className="font-medium text-foreground">
+                          {region.name}
+                        </span>
+                        <span className="hidden text-muted sm:block">
+                          {region.area}
+                        </span>
+                        <span className="inline-flex items-center gap-2 text-muted">
+                          <StatusDot tone={STATUS_TONE[region.status]} />
+                          {STATUS_LABEL[region.status]}
+                        </span>
+                        <span className="text-right tabular-nums text-muted">
+                          {region.latencyMs !== null
+                            ? `${region.latencyMs} ms`
+                            : "—"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="mt-3 text-xs text-subtle">
+            Latency is indicative from our monitoring point and varies with
+            your own connection.
+          </p>
+        </div>
+
+        {/* Context rail */}
+        <SideRail className="order-1 lg:order-2 lg:col-span-4">
+          <StatusRailPanel />
+
+          <Panel title="Area coverage">
+            {regions.loading ? (
+              <Skeleton className="h-28 w-full" />
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {groups.map((group) => {
+                  const available = group.regions.filter(
+                    (r) => r.status === "available",
+                  ).length;
+                  return (
                     <li
-                      key={region.id}
-                      className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-6 py-3.5 text-sm sm:grid-cols-[1fr_120px_90px]"
+                      key={group.area}
+                      className="flex items-center justify-between gap-3"
                     >
-                      <span className="text-foreground">{region.name}</span>
-                      <span className="inline-flex items-center gap-2 text-muted">
-                        <StatusDot tone={STATUS_TONE[region.status]} />
-                        {STATUS_LABEL[region.status]}
+                      <span className="flex items-center gap-2.5 text-foreground">
+                        <StatusDot
+                          tone={
+                            available === group.regions.length
+                              ? "success"
+                              : available === 0
+                                ? "danger"
+                                : "warning"
+                          }
+                        />
+                        {group.area}
                       </span>
-                      <span className="text-right tabular-nums text-muted">
-                        {region.latencyMs !== null
-                          ? `${region.latencyMs} ms`
-                          : "—"}
+                      <span className="tabular-nums text-muted">
+                        {available}/{group.regions.length}
                       </span>
                     </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
-        <p className="mt-3 text-xs text-subtle">
-          Latency is indicative from our monitoring point and varies with your
-          own connection.
-        </p>
+                  );
+                })}
+              </ul>
+            )}
+          </Panel>
+
+          <Panel title="Having connection issues?">
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start gap-3">
+                <Wrench className="mt-0.5 size-4 shrink-0 text-subtle" />
+                <span className="text-muted">
+                  Re-import your subscription or switch clients — see the{" "}
+                  <Link
+                    to="/setup"
+                    className="rounded-sm text-primary hover:underline focus-ring"
+                  >
+                    setup guide
+                  </Link>
+                  .
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <LifeBuoy className="mt-0.5 size-4 shrink-0 text-subtle" />
+                <span className="text-muted">
+                  Still stuck?{" "}
+                  <Link
+                    to="/console/support"
+                    className="rounded-sm text-primary hover:underline focus-ring"
+                  >
+                    Contact support
+                  </Link>{" "}
+                  with the affected region.
+                </span>
+              </li>
+            </ul>
+            <div className="mt-5 border-t border-border pt-4">
+              <PanelLink to="/help">Browse the Help Center</PanelLink>
+            </div>
+          </Panel>
+        </SideRail>
       </div>
     </Container>
   );

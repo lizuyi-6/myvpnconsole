@@ -51,17 +51,31 @@ export const PLATFORM_GUIDES: PlatformGuide[] = [
 /**
  * The setup guide body. Shared by the public /setup page and the console.
  * Steps are all visible — this is documentation, not a wizard.
+ *
+ * Platform selection can be controlled by a parent (e.g. the public setup
+ * page's desktop side navigation) or managed internally with the
+ * segmented control.
  */
 export function SetupGuide({
   initialPlatform,
+  platform: controlledPlatform,
+  onPlatformChange,
+  controlClassName,
 }: {
   initialPlatform?: string | null;
+  platform?: DevicePlatform;
+  onPlatformChange?: (platform: DevicePlatform) => void;
+  /** Extra classes for the segmented control wrapper (e.g. "lg:hidden"). */
+  controlClassName?: string;
 }) {
   const user = useAuthStore((s) => s.user);
   const validInitial = PLATFORM_GUIDES.some((g) => g.id === initialPlatform)
     ? (initialPlatform as DevicePlatform)
     : "windows";
-  const [platform, setPlatform] = useState<DevicePlatform>(validInitial);
+  const [internalPlatform, setInternalPlatform] =
+    useState<DevicePlatform>(validInitial);
+  const platform = controlledPlatform ?? internalPlatform;
+  const setPlatform = onPlatformChange ?? setInternalPlatform;
   const guide = PLATFORM_GUIDES.find((g) => g.id === platform)!;
 
   // Only fetch the subscription for signed-in users
@@ -75,13 +89,15 @@ export function SetupGuide({
 
   return (
     <div>
-      <SegmentedControl
-        aria-label="Platform"
-        options={PLATFORM_GUIDES.map((g) => ({ value: g.id, label: g.label }))}
-        value={platform}
-        onChange={setPlatform}
-        className="flex-wrap"
-      />
+      <div className={controlClassName}>
+        <SegmentedControl
+          aria-label="Platform"
+          options={PLATFORM_GUIDES.map((g) => ({ value: g.id, label: g.label }))}
+          value={platform}
+          onChange={setPlatform}
+          className="flex-wrap"
+        />
+      </div>
 
       <div className="mt-8">
         <p className="text-sm font-medium text-foreground">

@@ -2,6 +2,7 @@ import { Menu } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Logo } from "@/components/brand/logo";
+import { StatusDot } from "@/components/feedback/status-dot";
 import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +12,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useAsync } from "@/hooks/use-async";
 import { cn } from "@/lib/utils";
+import { networkService } from "@/services/network";
 import { useAuthStore } from "@/store/auth";
 
 const NAV_LINKS = [
@@ -30,6 +33,21 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
   );
 }
 
+function NetworkStatusIndicator() {
+  const { data } = useAsync(() => networkService.getStatus(), []);
+  if (!data) return null;
+  const operational = data.status === "operational";
+  return (
+    <Link
+      to="/network"
+      className="hidden items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-[13px] text-muted transition-colors hover:text-foreground focus-ring xl:flex"
+    >
+      <StatusDot tone={operational ? "success" : "warning"} />
+      {operational ? "Operational" : "Degraded"}
+    </Link>
+  );
+}
+
 export function SiteHeader() {
   const user = useAuthStore((s) => s.user);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -37,7 +55,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/90 backdrop-blur-md">
       <Container className="flex h-16 items-center justify-between gap-4">
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-10">
           <Link to="/" aria-label="NOVA home" className="focus-ring rounded-md">
             <Logo />
           </Link>
@@ -51,7 +69,8 @@ export function SiteHeader() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <NetworkStatusIndicator />
           {user ? (
             <Button asChild variant="secondary" size="sm" className="hidden sm:inline-flex">
               <Link to="/console">Console</Link>

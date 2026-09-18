@@ -10,18 +10,26 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { StatusDot } from "@/components/feedback/status-dot";
 import { Container } from "@/components/layout/container";
+import { Panel, PanelLink } from "@/components/layout/panel";
+import { SideRail } from "@/components/layout/side-rail";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { brand } from "@/config/brand";
+import { useAsync } from "@/hooks/use-async";
+import { cn, formatDate } from "@/lib/utils";
+import { networkService } from "@/services/network";
+import { subscriptionService } from "@/services/subscription";
+import { useAuthStore } from "@/store/auth";
 
-const TOPICS = [
+const CATEGORIES = [
   {
     icon: Rocket,
     title: "Getting started",
@@ -30,19 +38,19 @@ const TOPICS = [
   },
   {
     icon: Copy,
-    title: "Import subscription",
-    description: "Add your subscription URL to a compatible client.",
-    to: "/setup",
+    title: "Subscription URL",
+    description: "Import, reveal, copy or regenerate your personal link.",
+    to: "/console/subscription",
   },
   {
     icon: MonitorSmartphone,
-    title: "Device limit",
+    title: "Devices",
     description: "Manage the devices using your subscription.",
     to: "/console/devices",
   },
   {
     icon: RefreshCw,
-    title: "Renewal",
+    title: "Billing & renewal",
     description: "Extend your access without losing remaining time.",
     to: "/console/billing",
   },
@@ -54,9 +62,9 @@ const TOPICS = [
   },
   {
     icon: Radio,
-    title: "Subscription URL",
-    description: "Reveal, copy or regenerate your personal link.",
-    to: "/console/subscription",
+    title: "Account",
+    description: "Profile, notifications and sign-in.",
+    to: "/console/settings",
   },
 ];
 
@@ -93,6 +101,75 @@ const FAQ = [
   },
 ];
 
+/** Right rail — live status, current access, contact. */
+function SupportRail() {
+  const user = useAuthStore((s) => s.user);
+  const status = useAsync(() => networkService.getStatus(), []);
+  const subscription = useAsync(
+    () => (user ? subscriptionService.getCurrent() : Promise.resolve(null)),
+    [user?.email],
+  );
+
+  return (
+    <SideRail>
+      <Panel title="Network status">
+        {status.loading ? (
+          <Skeleton className="h-5 w-40" />
+        ) : (
+          <p className="flex items-center gap-2.5 text-sm text-foreground">
+            <StatusDot
+              tone={status.data?.status === "operational" ? "success" : "warning"}
+            />
+            {status.data?.status === "operational"
+              ? "All systems operational"
+              : "Some regions degraded"}
+          </p>
+        )}
+        <div className="mt-4 border-t border-border pt-4">
+          <PanelLink to="/network">View network</PanelLink>
+        </div>
+      </Panel>
+
+      {user && subscription.data && (
+        <Panel title="Your subscription">
+          <p className="flex items-center gap-2.5 text-sm text-foreground">
+            <StatusDot
+              tone={subscription.data.status === "active" ? "success" : "neutral"}
+            />
+            {subscription.data.status === "active" ? "Active" : "Expired"}
+          </p>
+          <p className="mt-2 text-[13px] text-muted">
+            Expires {formatDate(subscription.data.expiresAt)}
+          </p>
+          <div className="mt-4 border-t border-border pt-4">
+            <PanelLink to="/console/subscription">Manage subscription</PanelLink>
+          </div>
+        </Panel>
+      )}
+
+      <Panel title="Contact support">
+        <div className="flex items-start gap-3">
+          <LifeBuoy className="mt-0.5 size-4 shrink-0 text-subtle" />
+          <p className="text-sm leading-relaxed text-muted">
+            Signed-in users can open a ticket in the console, or email us
+            directly.
+          </p>
+        </div>
+        <a
+          href={`mailto:${brand.supportEmail}`}
+          className="mt-3 block break-all rounded-sm text-sm font-medium text-primary hover:underline focus-ring"
+        >
+          {brand.supportEmail}
+        </a>
+        <div className="mt-4 flex flex-col items-start gap-2.5 border-t border-border pt-4">
+          <PanelLink to="/console/support">Open a ticket</PanelLink>
+          <PanelLink to="/setup">Setup guide</PanelLink>
+        </div>
+      </Panel>
+    </SideRail>
+  );
+}
+
 export function HelpPage() {
   const [query, setQuery] = useState("");
 
@@ -107,112 +184,94 @@ export function HelpPage() {
   }, [query]);
 
   return (
-    <Container className="max-w-[1000px] py-14 md:py-20">
-      <div className="max-w-xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-          Help Center
-        </h1>
-        <p className="mt-3 text-base leading-relaxed text-muted">
-          Answers, guides and a direct line to support.
-        </p>
-      </div>
+    <Container className="py-12 md:py-16 lg:py-20">
+      <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+        Help Center
+      </h1>
+      <p className="mt-3 max-w-xl text-base leading-relaxed text-muted">
+        Answers, guides and a direct line to support.
+      </p>
 
       {/* Search */}
-      <div className="relative mt-8 max-w-xl">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-subtle" />
+      <div className="relative mt-8 max-w-[760px]">
+        <Search className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-subtle" />
         <Input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search help — e.g. renew, device, subscription URL"
           aria-label="Search help"
-          className="h-11 pl-10"
+          className="h-12 pl-11 text-[15px]"
         />
       </div>
 
-      {/* Popular topics */}
-      {!query && (
-        <div className="mt-10">
-          <h2 className="text-lg font-semibold text-foreground">
-            Popular topics
-          </h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {TOPICS.map((topic) => (
-              <Link
-                key={topic.title}
-                to={topic.to}
-                className="group rounded-xl border border-border bg-surface p-5 shadow-card transition-colors duration-150 hover:border-primary/40 focus-ring"
-              >
-                <div className="flex size-9 items-center justify-center rounded-lg bg-tint">
-                  <topic.icon className="size-[18px] text-primary" />
-                </div>
-                <h3 className="mt-3.5 text-sm font-semibold text-foreground group-hover:text-primary">
-                  {topic.title}
-                </h3>
-                <p className="mt-1 text-[13px] leading-relaxed text-muted">
-                  {topic.description}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* FAQ */}
-      <div className="mt-12">
-        <h2 className="text-lg font-semibold text-foreground">
-          {query ? `Results for “${query.trim()}”` : "Frequently asked"}
-        </h2>
-        {filteredFaq.length === 0 ? (
-          <p className="mt-5 text-sm text-muted">
-            No matching answers. Try different words, or{" "}
-            <Link
-              to="/console/support"
-              className="text-primary hover:underline focus-ring rounded-sm"
-            >
-              contact support
-            </Link>
-            .
-          </p>
-        ) : (
-          <div className="mt-4 max-w-3xl">
-            <Accordion type="single" collapsible>
-              {filteredFaq.map((item) => (
-                <AccordionItem key={item.question} value={item.question}>
-                  <AccordionTrigger>{item.question}</AccordionTrigger>
-                  <AccordionContent>{item.answer}</AccordionContent>
-                </AccordionItem>
+      <div className="mt-12 grid items-start gap-10 lg:grid-cols-12">
+        {/* Categories */}
+        {!query && (
+          <nav aria-label="Help categories" className="lg:col-span-3">
+            <p className="px-1 pb-3 text-xs font-medium uppercase tracking-wide text-subtle">
+              Categories
+            </p>
+            <ul className="space-y-1">
+              {CATEGORIES.map((category) => (
+                <li key={category.title}>
+                  <Link
+                    to={category.to}
+                    className={cn(
+                      "group flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors duration-150",
+                      "hover:bg-surface focus-ring",
+                    )}
+                  >
+                    <category.icon className="mt-0.5 size-4 shrink-0 text-subtle transition-colors group-hover:text-primary" />
+                    <span>
+                      <span className="block text-sm font-medium text-foreground group-hover:text-primary">
+                        {category.title}
+                      </span>
+                      <span className="mt-0.5 block text-[13px] leading-snug text-muted">
+                        {category.description}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
               ))}
-            </Accordion>
-          </div>
+            </ul>
+          </nav>
         )}
-      </div>
 
-      {/* Contact */}
-      <div className="mt-14 flex flex-col gap-5 rounded-xl border border-border bg-surface p-7 shadow-card sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-tint">
-            <LifeBuoy className="size-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-[15px] font-semibold text-foreground">
-              Still stuck?
-            </h2>
-            <p className="mt-1 max-w-md text-sm leading-relaxed text-muted">
-              Signed-in users can open a ticket in the console, or write to{" "}
-              <a
-                href={`mailto:${brand.supportEmail}`}
-                className="text-primary hover:underline focus-ring rounded-sm"
+        {/* FAQ — widens to fill when searching */}
+        <div className={cn(query ? "lg:col-span-9" : "lg:col-span-6")}>
+          <h2 className="text-lg font-semibold text-foreground">
+            {query ? `Results for “${query.trim()}”` : "Frequently asked"}
+          </h2>
+          {filteredFaq.length === 0 ? (
+            <p className="mt-5 text-sm text-muted">
+              No matching answers. Try different words, or{" "}
+              <Link
+                to="/console/support"
+                className="rounded-sm text-primary hover:underline focus-ring"
               >
-                {brand.supportEmail}
-              </a>
+                contact support
+              </Link>
               .
             </p>
-          </div>
+          ) : (
+            <div className="mt-4">
+              <Accordion type="single" collapsible>
+                {filteredFaq.map((item) => (
+                  <AccordionItem key={item.question} value={item.question}>
+                    <AccordionTrigger>{item.question}</AccordionTrigger>
+                    <AccordionContent>{item.answer}</AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          )}
         </div>
-        <Button asChild variant="secondary" className="shrink-0">
-          <Link to="/console/support">Contact support</Link>
-        </Button>
+
+        {/* Support rail */}
+        <div className="lg:col-span-3">
+          <SupportRail />
+        </div>
       </div>
     </Container>
   );

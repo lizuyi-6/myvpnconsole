@@ -94,7 +94,7 @@ export function CheckoutPage() {
 
   if (plan.loading) {
     return (
-      <Container className="max-w-5xl py-14 md:py-20">
+      <Container className="py-12 md:py-16 lg:py-20">
         <Skeleton className="h-9 w-40" />
         <Skeleton className="mt-8 h-[420px] w-full" />
       </Container>
@@ -139,16 +139,16 @@ export function CheckoutPage() {
   });
 
   return (
-    <Container className="max-w-5xl py-14 md:py-20">
+    <Container className="py-12 md:py-16 lg:py-20">
       <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
         Checkout
       </h1>
 
-      <div className="mt-10 grid items-start gap-8 lg:grid-cols-[1fr_360px]">
+      <div className="mt-10 grid items-start gap-8 lg:grid-cols-12 lg:gap-10">
         {/* Form */}
         <form
           onSubmit={onSubmit}
-          className="space-y-8 rounded-xl border border-border bg-surface p-6 shadow-card sm:p-8"
+          className="space-y-8 rounded-xl border border-border bg-surface p-6 shadow-card sm:p-8 lg:col-span-7"
           noValidate
         >
           {/* Contact */}
@@ -323,7 +323,7 @@ export function CheckoutPage() {
         </form>
 
         {/* Order summary */}
-        <aside className="rounded-xl border border-border bg-surface p-6 shadow-card lg:sticky lg:top-24">
+        <aside className="rounded-xl border border-border bg-surface p-6 shadow-card sm:p-7 lg:sticky lg:top-24 lg:col-span-5">
           <h2 className="text-[15px] font-semibold text-foreground">
             Summary
           </h2>

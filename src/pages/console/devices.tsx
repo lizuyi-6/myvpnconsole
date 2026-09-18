@@ -1,8 +1,20 @@
-import { Loader2, MonitorSmartphone, Pencil, Trash2 } from "lucide-react";
+import {
+  Laptop,
+  Loader2,
+  Monitor,
+  MonitorSmartphone,
+  Pencil,
+  Plus,
+  Smartphone,
+  TabletSmartphone,
+  Terminal,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { useAsync } from "@/hooks/use-async";
 import { deviceService } from "@/services/devices";
+import { subscriptionService } from "@/services/subscription";
 import type { Device, DevicePlatform } from "@/types";
 
 const PLATFORM_LABELS: Record<DevicePlatform, string> = {
@@ -31,6 +44,14 @@ const PLATFORM_LABELS: Record<DevicePlatform, string> = {
   ios: "iOS",
   android: "Android",
   linux: "Linux",
+};
+
+const PLATFORM_ICONS: Record<DevicePlatform, typeof Monitor> = {
+  windows: Monitor,
+  macos: Laptop,
+  ios: Smartphone,
+  android: TabletSmartphone,
+  linux: Terminal,
 };
 
 function lastActiveLabel(iso: string): string {
@@ -47,6 +68,7 @@ function lastActiveLabel(iso: string): string {
 
 export function ConsoleDevicesPage() {
   const devices = useAsync(() => deviceService.listDevices(), []);
+  const subscription = useAsync(() => subscriptionService.getCurrent(), []);
 
   const [renaming, setRenaming] = useState<Device | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -85,15 +107,25 @@ export function ConsoleDevicesPage() {
 
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Devices</h1>
-          <p className="mt-1 text-sm text-muted">
-            Devices using your subscription. Rename for clarity, remove what
-            you no longer use.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Devices"
+        description="Devices using your subscription. Rename for clarity, remove what you no longer use."
+        actions={
+          <>
+            <span className="rounded-full border border-border bg-surface px-3 py-1.5 text-[13px] tabular-nums text-muted">
+              {devices.data ? devices.data.length : "…"}
+              {" / "}
+              {subscription.data?.deviceLimit ?? "…"} used
+            </span>
+            <Button asChild size="sm">
+              <Link to="/console/setup">
+                <Plus className="size-4" />
+                Set up a device
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       <div className="mt-8">
         {devices.loading ? (
@@ -126,10 +158,17 @@ export function ConsoleDevicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {devices.data.map((device) => (
+              {devices.data.map((device) => {
+                const PlatformIcon = PLATFORM_ICONS[device.platform];
+                return (
                 <TableRow key={device.id}>
                   <TableCell className="font-medium text-foreground">
-                    {device.name}
+                    <span className="flex items-center gap-3">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-tint">
+                        <PlatformIcon className="size-4 text-primary" />
+                      </span>
+                      {device.name}
+                    </span>
                   </TableCell>
                   <TableCell className="hidden text-muted sm:table-cell">
                     {PLATFORM_LABELS[device.platform]}
@@ -159,7 +198,8 @@ export function ConsoleDevicesPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
           </div>
