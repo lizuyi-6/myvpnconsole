@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
 import { useI18n, type Dictionary } from "@/i18n";
 import { cn } from "@/lib/utils";
-import { DEVICE_LIMIT } from "@/mocks/plans";
+import { DEVICE_LIMIT } from "@/config/product";
 import { billingService } from "@/services/billing";
 import { planService } from "@/services/plans";
 import { useAuthStore } from "@/store/auth";

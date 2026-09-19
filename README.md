@@ -6,34 +6,48 @@ that is the entire product. There is deliberately **no shopping cart, no
 product catalog, no stock, no volume pricing**: this is a connectivity
 service, not a store.
 
-Frontend only. All data comes from a mock service layer designed to be swapped
-for a real REST API without touching page components.
+Full stack: a React SPA plus a Fastify + better-sqlite3 API
+([server/](server/)) behind a typed service layer. Pages never call `fetch()`
+directly — they consume services whose signatures are the API contract.
 
 ## Run
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # type-check + production build
+npm --prefix server install
+npm run dev:all   # API on :8787 + Vite on :5173 (with /api proxy)
+npm test:api      # API integration tests (in-memory DB, no network)
+npm run build     # type-check + production build of the frontend
 ```
+
+Demo account (seeded automatically): `alex.chen@example.com` /
+`nova-demo-2026`. Or register your own — a fresh account starts with no
+subscription and an honest empty state pointing at the plans.
+
+Production: build both, then one Node process serves SPA + API —
+see [server/README.md](server/README.md).
 
 ## Stack
 
-React 18 · TypeScript (strict) · Vite · Tailwind CSS · shadcn-style UI
-primitives (Radix + CVA) · Zustand (persisted auth) · React Router ·
-React Hook Form + Zod · Lucide icons
+- **Frontend**: React 18 · TypeScript (strict) · Vite · Tailwind CSS ·
+  shadcn-style UI primitives (Radix + CVA) · Zustand (persisted session +
+  token) · React Router · React Hook Form + Zod · Lucide icons
+- **API**: Fastify 5 · better-sqlite3 (WAL) · zod · scrypt password hashing ·
+  opaque revocable session tokens (Bearer + httpOnly cookie) · rate-limited
+  auth endpoints
 
 ## Demo notes
 
-- **Sign in**: any email + password of 8+ characters.
-  `fail@nova.dev` simulates a network error; shorter passwords are rejected
-  (email is preserved on failure).
-- **Checkout**: `/checkout?plan=30d|90d|365d`, mock payment (~1s), always
-  succeeds. Card fields are validated.
+- **Auth**: real accounts — register, login, logout (session revoked
+  server-side). Wrong credentials get a localized error; duplicate emails are
+  rejected with 409.
+- **Checkout**: `/checkout?plan=30d|90d|365d`. Payments are **simulated** (no
+  gateway is contacted); a completed payment creates/extends the subscription
+  server-side and issues a fresh subscription token.
 - A successful payment **extends the subscription** from the current expiry
-  (or from now if expired) — visible immediately in the console.
-- Payments, regenerated subscription tokens, device renames/removals persist
-  in `localStorage`.
+  (or from now if expired) — persisted in SQLite, visible after re-login.
+- Regenerating the subscription URL **invalidates the old token** and needs
+  explicit confirmation in the UI.
 
 ## Information architecture
 
@@ -65,17 +79,18 @@ Legacy redirects: /products* /pricing /cart → /plans · /dashboard/* → /cons
 ```
 src/
   config/brand.ts        ← name, copy, primary color in one place
+  config/product.ts      ← service name, device limit
   types/                 ← Plan, Region, Subscription, Device, Payment, Ticket
-  mocks/                 ← seed data
+  lib/api-client.ts      ← fetch wrapper (Bearer token, 401 event, ServiceError)
   services/              ← API boundary; pages never call fetch()
+    auth.ts                POST /auth/login, /auth/register, /auth/logout
     plans.ts               GET /plans, /plans/:id
     network.ts             GET /network/status, /network/regions
     subscription.ts        GET /subscription, POST /subscription/regenerate-link
     devices.ts             GET/PATCH/DELETE /devices
     billing.ts             GET/POST /billing/payments (extends subscription)
     support.ts             GET/POST /tickets
-    auth.ts                POST /auth/login, /auth/register
-  store/auth.ts          ← Zustand persisted session
+  store/auth.ts          ← Zustand persisted session + token
   hooks/                 ← useAsync (loading/error/retry), useCopy
   components/
     ui/                  ← primitives (small radius, weak borders)
@@ -83,6 +98,11 @@ src/
     subscription/        ← SubscriptionUrlField (masked, reveal, copy)
     setup/               ← SetupGuide (shared by public + console)
     feedback/            ← status dots, empty / error states
+
+server/                  ← Fastify API (see server/README.md)
+  src/routes/            ← auth, catalog, subscription, devices, billing, support
+  src/{db,auth,seed}.ts  ← SQLite schema, scrypt + sessions, demo seed
+  test/                  ← 40 integration tests via fastify.inject
 ```
 
 ## Visual language
@@ -94,7 +114,9 @@ not a badge. No gradients, glows, glassmorphism or scroll-reveal animation;
 animation is limited to dialogs and drawers (~150–250ms) and respects
 `prefers-reduced-motion`.
 
-## Backend integration
+## Backend
 
-Replace the service bodies in `src/services/*` with HTTP calls. Signatures are
-the contract — see [docs/api-contract.md](docs/api-contract.md).
+Implemented in [server/](server/) — the service bodies in `src/services/*`
+now call it over HTTP. The human-readable contract lives in
+[docs/api-contract.md](docs/api-contract.md); the executable one is the test
+suite (`npm test:api`).

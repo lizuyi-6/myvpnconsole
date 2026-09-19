@@ -10,6 +10,7 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n, type Dictionary } from "@/i18n";
+import { EmailTakenError } from "@/services/auth";
 import { useAuthStore } from "@/store/auth";
 
 function buildRegisterSchema(dict: Dictionary) {
@@ -53,8 +54,13 @@ export function RegisterPage() {
       navigate(next && next.startsWith("/") ? next : "/dashboard", {
         replace: true,
       });
-    } catch {
-      setServerError(t("auth.register.errors.generic"));
+    } catch (err) {
+      // Input stays filled — only the error is shown.
+      setServerError(
+        err instanceof EmailTakenError
+          ? t("auth.register.errors.emailTaken")
+          : t("auth.register.errors.generic"),
+      );
     }
   });
 

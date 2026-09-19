@@ -804,6 +804,7 @@ export const en = {
         emailInvalid: "Enter a valid email address",
         passwordMin: "Use at least 8 characters",
         mismatch: "Passwords don't match",
+        emailTaken: "An account with this email already exists. Sign in instead.",
         generic: "Could not create your account. Please try again.",
       },
     },
@@ -844,6 +845,11 @@ export const en = {
     },
     signOut: "Sign out",
     renew: "Renew",
+    noAccess: {
+      title: "No active access",
+      body: "You don't have a Network Access subscription yet. Pick a duration to activate your access — it starts the moment payment completes.",
+      cta: "View plans",
+    },
     overview: {
       title: "Overview",
       loadError: "We couldn't load your subscription.",

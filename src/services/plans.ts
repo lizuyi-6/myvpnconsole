@@ -1,10 +1,9 @@
-import { mockPlans } from "@/mocks/plans";
-import { delay, ServiceError } from "@/services/mock-transport";
+import { api } from "@/lib/api-client";
 import type { Plan } from "@/types";
 
 /**
  * Plan catalog.
- * Backend contract: GET /plans, GET /plans/:id
+ * API: GET /plans, GET /plans/:id
  */
 export interface PlanService {
   listPlans(): Promise<Plan[]>;
@@ -12,15 +11,11 @@ export interface PlanService {
 }
 
 export const planService: PlanService = {
-  async listPlans() {
-    await delay(200, 400);
-    return mockPlans;
+  listPlans() {
+    return api<Plan[]>("/plans");
   },
 
-  async getPlan(id) {
-    await delay(150, 300);
-    const plan = mockPlans.find((p) => p.id === id);
-    if (!plan) throw new ServiceError("Plan not found.", 404);
-    return plan;
+  getPlan(id) {
+    return api<Plan>(`/plans/${encodeURIComponent(id)}`);
   },
 };

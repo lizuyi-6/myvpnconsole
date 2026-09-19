@@ -1,65 +1,35 @@
-import { mockSubscription } from "@/mocks/subscription";
-import { DEVICE_LIMIT } from "@/mocks/plans";
-import {
-  delay,
-  readStorage,
-  writeStorage,
-} from "@/services/mock-transport";
+import { api } from "@/lib/api-client";
+import { ServiceError } from "@/services/errors";
 import type { Subscription } from "@/types";
 
 /**
  * The user's network access subscription.
- * Backend contract:
+ * API:
  *   GET  /subscription
  *   POST /subscription/regenerate-link
- *   POST /subscription/renew   (initiated through billing.createPayment)
+ *   POST /billing/payments (renewal — see billing service)
+ *
+ * `getCurrent` resolves to null while the account has no subscription yet
+ * (fresh registration) — pages render an honest empty state for that.
  */
 export interface SubscriptionService {
-  getCurrent(): Promise<Subscription>;
+  getCurrent(): Promise<Subscription | null>;
   regenerateLink(): Promise<{ subscriptionToken: string }>;
-}
-
-/** Local overrides so mock mutations survive refreshes. */
-const OVERRIDE_KEY = "nova.subscription-override";
-
-interface SubscriptionOverride {
-  subscriptionToken?: string;
-  expiresAt?: string;
-  planLabel?: string;
-}
-
-function current(): Subscription {
-  const override = readStorage<SubscriptionOverride>(OVERRIDE_KEY, {});
-  return {
-    ...mockSubscription,
-    ...override,
-    deviceLimit: DEVICE_LIMIT,
-  };
-}
-
-/** Synchronous read of the effective expiry — used when applying renewals. */
-export function getEffectiveExpiry(): string {
-  return current().expiresAt;
-}
-
-export function applyPurchaseOverride(expiresAt: string, planLabel: string) {
-  const override = readStorage<SubscriptionOverride>(OVERRIDE_KEY, {});
-  writeStorage(OVERRIDE_KEY, { ...override, expiresAt, planLabel });
 }
 
 export const subscriptionService: SubscriptionService = {
   async getCurrent() {
-    await delay(250, 450);
-    return current();
+    try {
+      return await api<Subscription>("/subscription");
+    } catch (err) {
+      if (err instanceof ServiceError && err.status === 404) return null;
+      throw err;
+    }
   },
 
-  async regenerateLink() {
-    await delay(600, 900);
-    const subscriptionToken = crypto
-      .getRandomValues(new Uint8Array(8))
-      .reduce((acc, byte) => acc + byte.toString(16).padStart(2, "0"), "");
-    const override = readStorage<SubscriptionOverride>(OVERRIDE_KEY, {});
-    writeStorage(OVERRIDE_KEY, { ...override, subscriptionToken });
-    return { subscriptionToken };
+  regenerateLink() {
+    return api<{ subscriptionToken: string }>("/subscription/regenerate-link", {
+      method: "POST",
+    });
   },
 };

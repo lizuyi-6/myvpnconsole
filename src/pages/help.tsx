@@ -26,7 +26,7 @@ import { brand } from "@/config/brand";
 import { useAsync } from "@/hooks/use-async";
 import { interpolate, useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
-import { DEVICE_LIMIT } from "@/mocks/plans";
+import { DEVICE_LIMIT } from "@/config/product";
 import { networkService } from "@/services/network";
 import { subscriptionService } from "@/services/subscription";
 import { useAuthStore } from "@/store/auth";

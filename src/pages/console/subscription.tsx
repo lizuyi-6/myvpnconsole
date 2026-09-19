@@ -1,6 +1,7 @@
 import { Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { StatusDot } from "@/components/feedback/status-dot";
 import { PageHeader } from "@/components/layout/page-header";
@@ -49,12 +50,31 @@ export function ConsoleSubscriptionPage() {
     );
   }
 
-  if (subscription.error || !subscription.data) {
+  if (subscription.error) {
     return (
       <ErrorState
         message={t("console.subscription.loadError")}
         onRetry={subscription.retry}
       />
+    );
+  }
+
+  // Fresh account, no purchase yet — point to the plans instead of an error.
+  if (!subscription.data) {
+    return (
+      <div>
+        <PageHeader title={t("console.subscription.title")} />
+        <EmptyState
+          icon={ShieldCheck}
+          title={t("console.noAccess.title")}
+          message={t("console.noAccess.body")}
+          action={
+            <Button asChild>
+              <Link to="/plans">{t("console.noAccess.cta")}</Link>
+            </Button>
+          }
+        />
+      </div>
     );
   }
 

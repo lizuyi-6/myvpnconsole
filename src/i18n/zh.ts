@@ -772,6 +772,7 @@ export const zh: Dictionary = {
         emailInvalid: "请输入有效的邮箱地址",
         passwordMin: "至少使用 8 个字符",
         mismatch: "两次输入的密码不一致",
+        emailTaken: "该邮箱已注册，请直接登录。",
         generic: "无法创建账户，请重试。",
       },
     },
@@ -811,6 +812,11 @@ export const zh: Dictionary = {
     },
     signOut: "退出登录",
     renew: "续费",
+    noAccess: {
+      title: "暂无有效订阅",
+      body: "你还没有开通网络访问服务。选择一个时长即可开通，支付完成后立即生效。",
+      cta: "查看套餐",
+    },
     overview: {
       title: "概览",
       loadError: "无法加载你的订阅信息。",

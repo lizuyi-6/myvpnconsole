@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAsync } from "@/hooks/use-async";
 import { interpolate, useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
-import { DEVICE_LIMIT } from "@/mocks/plans";
+import { DEVICE_LIMIT } from "@/config/product";
 import { networkService } from "@/services/network";
 import { planService } from "@/services/plans";
 

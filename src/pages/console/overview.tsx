@@ -2,11 +2,13 @@ import {
   ArrowRight,
   Laptop,
   Monitor,
+  ShieldCheck,
   Smartphone,
   TabletSmartphone,
   Terminal,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { StatusDot } from "@/components/feedback/status-dot";
 import { PageHeader } from "@/components/layout/page-header";
@@ -51,6 +53,25 @@ export function ConsoleOverviewPage() {
   }
 
   const sub = subscription.data;
+
+  // Fresh account, no purchase yet — say so instead of an empty dashboard.
+  if (!subscription.loading && !sub) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title={t("console.overview.title")} />
+        <EmptyState
+          icon={ShieldCheck}
+          title={t("console.noAccess.title")}
+          message={t("console.noAccess.body")}
+          action={
+            <Button asChild>
+              <Link to="/plans">{t("console.noAccess.cta")}</Link>
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

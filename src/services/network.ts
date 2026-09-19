@@ -1,10 +1,9 @@
-import { mockNetworkStatus, mockRegions } from "@/mocks/regions";
-import { delay } from "@/services/mock-transport";
+import { api } from "@/lib/api-client";
 import type { NetworkStatus, Region } from "@/types";
 
 /**
  * Network information.
- * Backend contract: GET /network/status, GET /network/regions
+ * API: GET /network/status, GET /network/regions
  */
 export interface NetworkService {
   getStatus(): Promise<NetworkStatus>;
@@ -12,13 +11,12 @@ export interface NetworkService {
 }
 
 export const networkService: NetworkService = {
-  async getStatus() {
-    await delay(200, 400);
-    return mockNetworkStatus;
+  getStatus() {
+    return api<NetworkStatus>("/network/status");
   },
 
   async listRegions() {
-    await delay();
-    return [...mockRegions].sort((a, b) => a.name.localeCompare(b.name));
+    const regions = await api<Region[]>("/network/regions");
+    return [...regions].sort((a, b) => a.name.localeCompare(b.name));
   },
 };

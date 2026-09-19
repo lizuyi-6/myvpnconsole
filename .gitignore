@@ -13,3 +13,7 @@ dist-ssr
 logs
 *.log
 npm-debug.log*
+
+# API server
+server/data/
+server/dist/
